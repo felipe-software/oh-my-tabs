@@ -12,7 +12,7 @@ export interface Size {
 export interface TabItemProps {
     icon: ReactElement;
     text: string;
-    onMeasure: (s: Size) => void;
+    onMeasure?: (s: Size) => void;
     isActive: boolean;
 }
 
@@ -23,7 +23,7 @@ export const TabItem = ({ icon, text, onMeasure, isActive }: TabItemProps) => {
             style={{ flex: 1, maxWidth: 96, zIndex: 1 }}
             onLayout={(e) => {
                 e.target.measure((x, y, width, height) => {
-                    onMeasure({ x, y, width, height });
+                    onMeasure?.({ x, y, width, height });
                 });
             }}
         >
@@ -46,7 +46,7 @@ export const TabItem = ({ icon, text, onMeasure, isActive }: TabItemProps) => {
                     style={{
                         fontSize: 14,
                         transform: [{ translateY: 2 }],
-                        color: isActive ? activeColor : "#c0c0c0",
+                        color: isActive ? activeColor : "#888",
                         fontWeight: isActive ? "700" : "400",
                     }}
                 >
