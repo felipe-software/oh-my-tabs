@@ -8,8 +8,8 @@ import Animated, {
     Extrapolation,
     interpolate,
 } from "react-native-reanimated";
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { cloneElement, ReactElement, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const FRONT_EDGE_SPRING = { mass: 0.32, stiffness: 520, damping: 32 };
@@ -20,6 +20,45 @@ const SCALE_Y_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
 
 const PILL_WIDTH = 96;
 const HALF_WIDTH = PILL_WIDTH / 2;
+import {
+    HorseIcon,
+    HeartIcon,
+    CubeIcon,
+    AndroidLogoIcon,
+    GearIcon,
+    GearSixIcon,
+    HouseLineIcon,
+    HouseIcon,
+    ApertureIcon,
+    ImagesIcon,
+    ImagesSquareIcon,
+} from "phosphor-react-native";
+
+const TabItem = ({ icon, text }: { icon: ReactElement; text: string }) => {
+    return (
+        <Animated.View style={{ flex: 1 }}>
+            <Pressable
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    // backgroundColor: "red",
+                }}
+            >
+                <View style={{ transform: [{ scale: 1.1 }, { translateY: 2 }] }}>{icon}</View>
+                <Text
+                    style={{
+                        // lineHeight: 14,
+                        fontSize: 14,
+                        transform: [{ translateY: 2 }],
+                    }}
+                >
+                    {text}
+                </Text>
+            </Pressable>
+        </Animated.View>
+    );
+};
 
 export default function HomeScreen() {
     const [trackWidth, setTrackWidth] = useState(0);
@@ -110,6 +149,42 @@ export default function HomeScreen() {
                     onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
                 >
                     <Animated.View style={[styles.pill, pillStyle]} />
+                    <TabItem
+                        icon={
+                            <HouseIcon
+                                style={{
+                                    transform: [{ scale: 1.5 }],
+                                }}
+                                size={16}
+                                weight="duotone"
+                            />
+                        }
+                        text="Home"
+                    />
+                    <TabItem
+                        icon={
+                            <ImagesSquareIcon
+                                style={{
+                                    transform: [{ scale: 1.5 }],
+                                }}
+                                size={16}
+                                weight="duotone"
+                            />
+                        }
+                        text="Camera"
+                    />
+                    <TabItem
+                        icon={
+                            <GearSixIcon
+                                style={{
+                                    transform: [{ scale: 1.5 }],
+                                }}
+                                size={16}
+                                weight="duotone"
+                            />
+                        }
+                        text="Settings"
+                    />
                 </View>
             </SafeAreaView>
         </GestureDetector>
@@ -118,16 +193,24 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
     track: {
+        position: "relative",
         width: "100%",
         height: 64,
-        backgroundColor: "red",
-        justifyContent: "center",
+        backgroundColor: "#1f1f1f",
+        alignItems: "center",
         padding: 4,
+        borderRadius: 32,
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-around",
+        // paddingHorizontal: 16
     },
     pill: {
+        position: "absolute",
         width: PILL_WIDTH,
+        left: 0,
         height: "100%",
-        backgroundColor: "blue",
+        backgroundColor: "#c0c0c0",
         borderRadius: 999,
     },
 });
