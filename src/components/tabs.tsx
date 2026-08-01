@@ -6,7 +6,10 @@ import {
 import { ReactElement, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
+import { PanHandlerData } from "react-native-gesture-handler/lib/typescript/v3/hooks/gestures/pan/PanTypes";
+import { GestureEndEvent } from "react-native-gesture-handler/lib/typescript/v3/types";
 import Animated, {
+    cancelAnimation,
     clamp,
     Extrapolation,
     interpolate,
@@ -24,9 +27,31 @@ const SCALE_Y_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
 const PILL_WIDTH = 96;
 const HALF_WIDTH = PILL_WIDTH / 2;
 
-const TabItem = ({ icon, text }: { icon: ReactElement; text: string }) => {
+interface Size {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+const TabItem = ({
+    icon,
+    text,
+    onMeasure,
+}: {
+    icon: ReactElement;
+    text: string;
+    onMeasure: (s: Size) => void;
+}) => {
     return (
-        <Animated.View style={{ flex: 1 }}>
+        <Animated.View
+            style={{ flex: 1, maxWidth: 64 }}
+            onLayout={(e) => {
+                e.target.measure((x, y, width, height) => {
+                    onMeasure({ x, y, width, height });
+                });
+            }}
+        >
             <Pressable
                 style={{
                     display: "flex",
@@ -52,12 +77,37 @@ const TabItem = ({ icon, text }: { icon: ReactElement; text: string }) => {
     );
 };
 
+const emptySize: Size = {
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+};
+
+// Taken from wcandillon/react-native-redash
+export const snapPoint = (
+    value: number,
+    velocity: number,
+    points: ReadonlyArray<number>,
+): number => {
+    "worklet";
+    const point = value + 0.2 * velocity;
+    const deltas = points.map((p) => Math.abs(point - p));
+    const minDelta = Math.min.apply(null, deltas);
+    return points.filter((p) => Math.abs(point - p) === minDelta)[0];
+};
+
 export const Tabs = () => {
     const [trackWidth, setTrackWidth] = useState(0);
     const centerX = useSharedValue(HALF_WIDTH);
     const leftEdge = useSharedValue(0);
     const rightEdge = useSharedValue(PILL_WIDTH);
     const scaleY = useSharedValue(1);
+    const [tabs, setTabs] = useState<Size[]>(
+        new Array(3).fill(0).map((_) => emptySize),
+    );
+
+    const snapPoints = tabs.map((tab, i) => (tab.width / 2) + tab.x);
 
     const moveTo = (x: number, velocityX: number) => {
         "worklet";
@@ -92,10 +142,15 @@ export const Tabs = () => {
         centerX.value = clamped;
     };
 
-    const end = () => {
+    const end = (e: GestureEndEvent<PanHandlerData>) => {
         "worklet";
         leftEdge.value = withSpring(centerX.value - HALF_WIDTH, SETTLE_SPRING);
         rightEdge.value = withSpring(centerX.value + HALF_WIDTH, SETTLE_SPRING);
+        const snap = snapPoint(centerX.value, 0, snapPoints);
+        leftEdge.value = withSpring(snap - HALF_WIDTH, SETTLE_SPRING);
+        rightEdge.value = withSpring(snap + HALF_WIDTH, SETTLE_SPRING);
+        centerX.value = snap;
+        console.log({ snap: snap, snapPoints });
         scaleY.value = withSpring(1, SCALE_Y_SPRING);
     };
 
@@ -111,8 +166,9 @@ export const Tabs = () => {
         onUpdate: (e) => {
             moveTo(e.x, e.velocityX);
         },
-        onFinalize: () => {
-            end();
+
+        onFinalize: (e) => {
+            end(e);
         },
     });
 
@@ -128,6 +184,15 @@ export const Tabs = () => {
             ],
         };
     });
+
+    const updateTab = (index: number, newValue: Size) => {
+        console.log(index, newValue);
+        setTabs((oldValue) => {
+            const copy = [...oldValue];
+            copy[index] = newValue;
+            return copy;
+        });
+    };
 
     return (
         <GestureDetector gesture={gesture}>
@@ -147,6 +212,7 @@ export const Tabs = () => {
                         />
                     }
                     text="Home"
+                    onMeasure={(size) => updateTab(0, size)}
                 />
                 <TabItem
                     icon={
@@ -159,6 +225,7 @@ export const Tabs = () => {
                         />
                     }
                     text="Camera"
+                    onMeasure={(size) => updateTab(1, size)}
                 />
                 <TabItem
                     icon={
@@ -171,7 +238,21 @@ export const Tabs = () => {
                         />
                     }
                     text="Settings"
+                    onMeasure={(size) => updateTab(3, size)}
                 />
+                {/* <TabItem
+                    icon={
+                        <GearSixIcon
+                            style={{
+                                transform: [{ scale: 1.5 }],
+                            }}
+                            size={16}
+                            weight="duotone"
+                        />
+                    }
+                    text="Settings"
+                    onMeasure={(size) => updateTab(4, size)}
+                /> */}
             </View>
         </GestureDetector>
     );
@@ -180,7 +261,7 @@ export const Tabs = () => {
 const styles = StyleSheet.create({
     track: {
         position: "relative",
-        width: "100%",
+        // width: "fit-content",
         height: 64,
         backgroundColor: "#1f1f1f",
         alignItems: "center",
@@ -188,7 +269,8 @@ const styles = StyleSheet.create({
         borderRadius: 32,
         display: "flex",
         flexDirection: "row",
-        justifyContent: "space-around",
+        justifyContent: "space-evenly",
+        width: "auto"
     },
     pill: {
         position: "absolute",
