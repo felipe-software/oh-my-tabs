@@ -1,9 +1,10 @@
+import { Size, TabItem, TabItemProps } from "@/components/tab-item";
 import {
     GearSixIcon,
     HouseIcon,
     ImagesSquareIcon,
 } from "phosphor-react-native";
-import { ReactElement, useState } from "react";
+import { cloneElement, ReactElement, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { PanHandlerData } from "react-native-gesture-handler/lib/typescript/v3/hooks/gestures/pan/PanTypes";
@@ -17,6 +18,7 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from "react-native-reanimated";
+import { runOnJS } from "react-native-worklets";
 
 const FRONT_EDGE_SPRING = { mass: 0.32, stiffness: 520, damping: 32 };
 const TRAILING_EDGE_SPRING = { mass: 0.72, stiffness: 230, damping: 21 };
@@ -26,56 +28,6 @@ const SCALE_Y_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
 
 const PILL_WIDTH = 96;
 const HALF_WIDTH = PILL_WIDTH / 2;
-
-interface Size {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
-const TabItem = ({
-    icon,
-    text,
-    onMeasure,
-}: {
-    icon: ReactElement;
-    text: string;
-    onMeasure: (s: Size) => void;
-}) => {
-    return (
-        <Animated.View
-            style={{ flex: 1, maxWidth: 64 }}
-            onLayout={(e) => {
-                e.target.measure((x, y, width, height) => {
-                    onMeasure({ x, y, width, height });
-                });
-            }}
-        >
-            <Pressable
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                }}
-            >
-                <View
-                    style={{ transform: [{ scale: 1.1 }, { translateY: 2 }] }}
-                >
-                    {icon}
-                </View>
-                <Text
-                    style={{
-                        fontSize: 14,
-                        transform: [{ translateY: 2 }],
-                    }}
-                >
-                    {text}
-                </Text>
-            </Pressable>
-        </Animated.View>
-    );
-};
 
 const emptySize: Size = {
     width: 0,
@@ -103,11 +55,16 @@ export const Tabs = () => {
     const leftEdge = useSharedValue(0);
     const rightEdge = useSharedValue(PILL_WIDTH);
     const scaleY = useSharedValue(1);
-    const [tabs, setTabs] = useState<Size[]>(
+    const [tabSizes, setTabSizes] = useState<Size[]>(
         new Array(3).fill(0).map((_) => emptySize),
     );
+    const [currentIndex, setCurrentIndex] = useState(0);
 
-    const snapPoints = tabs.map((tab, i) => (tab.width / 2) + tab.x);
+    const snapPoints = tabSizes.map((tab, i) => tab.width / 2 + tab.x);
+
+    useEffect(() => {
+        
+    }, [snapPoints])
 
     const moveTo = (x: number, velocityX: number) => {
         "worklet";
@@ -140,6 +97,10 @@ export const Tabs = () => {
             );
         }
         centerX.value = clamped;
+
+        // const snap = snapPoint(centerX.value, velocityX, snapPoints);
+        // const snapIndex = snapPoints.indexOf(snap);
+        // runOnJS(setCurrentIndex)(snapIndex ?? 0);
     };
 
     const end = (e: GestureEndEvent<PanHandlerData>) => {
@@ -147,11 +108,13 @@ export const Tabs = () => {
         leftEdge.value = withSpring(centerX.value - HALF_WIDTH, SETTLE_SPRING);
         rightEdge.value = withSpring(centerX.value + HALF_WIDTH, SETTLE_SPRING);
         const snap = snapPoint(centerX.value, 0, snapPoints);
+        const snapIndex = snapPoints.indexOf(snap);
+
         leftEdge.value = withSpring(snap - HALF_WIDTH, SETTLE_SPRING);
         rightEdge.value = withSpring(snap + HALF_WIDTH, SETTLE_SPRING);
         centerX.value = snap;
-        console.log({ snap: snap, snapPoints });
         scaleY.value = withSpring(1, SCALE_Y_SPRING);
+        runOnJS(setCurrentIndex)(snapIndex ?? 0);
     };
 
     const gesture = usePanGesture({
@@ -187,12 +150,16 @@ export const Tabs = () => {
 
     const updateTab = (index: number, newValue: Size) => {
         console.log(index, newValue);
-        setTabs((oldValue) => {
+        setTabSizes((oldValue) => {
             const copy = [...oldValue];
             copy[index] = newValue;
             return copy;
         });
     };
+
+    console.log({ currentIndex });
+
+    // const tabs: TabItemProps = []
 
     return (
         <GestureDetector gesture={gesture}>
@@ -211,6 +178,7 @@ export const Tabs = () => {
                             weight="duotone"
                         />
                     }
+                    isActive={currentIndex === 0}
                     text="Home"
                     onMeasure={(size) => updateTab(0, size)}
                 />
@@ -224,6 +192,7 @@ export const Tabs = () => {
                             weight="duotone"
                         />
                     }
+                    isActive={currentIndex === 1}
                     text="Camera"
                     onMeasure={(size) => updateTab(1, size)}
                 />
@@ -237,8 +206,9 @@ export const Tabs = () => {
                             weight="duotone"
                         />
                     }
+                    isActive={currentIndex === 2}
                     text="Settings"
-                    onMeasure={(size) => updateTab(3, size)}
+                    onMeasure={(size) => updateTab(2, size)}
                 />
                 {/* <TabItem
                     icon={
@@ -270,7 +240,8 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "row",
         justifyContent: "space-evenly",
-        width: "auto"
+        width: "auto",
+        flexGrow: 0
     },
     pill: {
         position: "absolute",
@@ -279,5 +250,6 @@ const styles = StyleSheet.create({
         height: "100%",
         backgroundColor: "#c0c0c0",
         borderRadius: 999,
+        zIndex: 0
     },
 });
