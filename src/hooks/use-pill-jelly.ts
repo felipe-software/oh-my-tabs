@@ -1,5 +1,5 @@
 import { Size } from "@/components/tab-item";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePanGesture } from "react-native-gesture-handler";
 import { PanHandlerData } from "react-native-gesture-handler/lib/typescript/v3/hooks/gestures/pan/PanTypes";
 import { GestureEndEvent } from "react-native-gesture-handler/lib/typescript/v3/types";
@@ -8,6 +8,7 @@ import {
     Extrapolation,
     interpolate,
     useAnimatedStyle,
+    useFrameCallback,
     useSharedValue,
     withSpring,
 } from "react-native-reanimated";
@@ -17,10 +18,12 @@ const FRONT_EDGE_SPRING = { mass: 0.32, stiffness: 520, damping: 32 };
 const TRAILING_EDGE_SPRING = { mass: 0.72, stiffness: 230, damping: 21 };
 const SETTLE_SPRING = { mass: 0.48, stiffness: 370, damping: 22 };
 const PRESS_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
-const SCALE_Y_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
+const SQUISH_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
 
 const PILL_WIDTH = 96;
 const HALF_WIDTH = PILL_WIDTH / 2;
+const INERTIA_DECAY_PER_MS = 0.015;
+const IDLE_TIMEOUT_MS = 500;
 
 const emptySize: Size = {
     width: 0,
@@ -29,7 +32,6 @@ const emptySize: Size = {
     y: 0,
 };
 
-// Taken from wcandillon/react-native-redash
 export const snapPoint = (
     value: number,
     velocity: number,
@@ -48,14 +50,16 @@ export const usePillJelly = () => {
     const leftEdge = useSharedValue(0);
     const rightEdge = useSharedValue(PILL_WIDTH);
     const scaleY = useSharedValue(1);
+    const scaleX = useSharedValue(1);
+    const pointerDownY = useSharedValue(0);
     const [tabSizes, setTabSizes] = useState<Size[]>(
         new Array(3).fill(0).map((_) => emptySize),
     );
     const [currentIndex, setCurrentIndex] = useState(0);
+    const inertiaX = useSharedValue(0);
+    const timeoutId = useSharedValue(-1);
 
     const snapPoints = tabSizes.map((tab, i) => tab.width / 2 + tab.x);
-
-    useEffect(() => {}, [snapPoints]);
 
     const moveTo = (x: number, velocityX: number) => {
         "worklet";
@@ -63,9 +67,9 @@ export const usePillJelly = () => {
         const movingRight = clamped >= centerX.value;
 
         const speed = Math.abs(velocityX);
-        scaleY.value = withSpring(
-            interpolate(speed, [0, 1200], [1.3, 0.7], Extrapolation.CLAMP),
-            SCALE_Y_SPRING,
+        inertiaX.value = Math.max(
+            inertiaX.value,
+            interpolate(speed, [0, 1200], [0, 2], Extrapolation.CLAMP),
         );
 
         if (movingRight) {
@@ -88,43 +92,20 @@ export const usePillJelly = () => {
             );
         }
         centerX.value = clamped;
-
-        // const snap = snapPoint(centerX.value, velocityX, snapPoints);
-        // const snapIndex = snapPoints.indexOf(snap);
-        // runOnJS(setCurrentIndex)(snapIndex ?? 0);
     };
 
     const end = (e: GestureEndEvent<PanHandlerData>) => {
         "worklet";
-        leftEdge.value = withSpring(centerX.value - HALF_WIDTH, SETTLE_SPRING);
-        rightEdge.value = withSpring(centerX.value + HALF_WIDTH, SETTLE_SPRING);
         const snap = snapPoint(centerX.value, 0, snapPoints);
         const snapIndex = snapPoints.indexOf(snap);
 
         leftEdge.value = withSpring(snap - HALF_WIDTH, SETTLE_SPRING);
         rightEdge.value = withSpring(snap + HALF_WIDTH, SETTLE_SPRING);
         centerX.value = snap;
-        scaleY.value = withSpring(1, SCALE_Y_SPRING);
+        // scaleY.value = withSpring(1, SETTLE_SPRING);
+        scaleX.value = withSpring(1, SETTLE_SPRING);
         runOnJS(setCurrentIndex)(snapIndex ?? 0);
     };
-
-    const gesture = usePanGesture({
-        onTouchesDown: (e) => {
-            scaleY.value = withSpring(1.2, SCALE_Y_SPRING);
-            const touchX = e.allTouches[0].x;
-            const clamped = clamp(touchX, HALF_WIDTH, trackWidth - HALF_WIDTH);
-            leftEdge.value = withSpring(clamped - HALF_WIDTH, PRESS_SPRING);
-            rightEdge.value = withSpring(clamped + HALF_WIDTH, PRESS_SPRING);
-            centerX.value = clamped;
-        },
-        onUpdate: (e) => {
-            moveTo(e.x, e.velocityX);
-        },
-
-        onFinalize: (e) => {
-            end(e);
-        },
-    });
 
     const pillStyle = useAnimatedStyle(() => {
         const width = rightEdge.value - leftEdge.value;
@@ -133,20 +114,69 @@ export const usePillJelly = () => {
         return {
             transform: [
                 { translateX: centerOffset },
-                { scaleX: width / PILL_WIDTH },
+                { scaleX: (width / PILL_WIDTH) * scaleX.value },
                 { scaleY: scaleY.value },
             ],
         };
     });
 
     const updateTabSize = (index: number, newValue: Size) => {
-        console.log(index, newValue);
         setTabSizes((oldValue) => {
             const copy = [...oldValue];
             copy[index] = newValue;
             return copy;
         });
     };
+
+    const activateFrame = () => {
+        frameCallback.setActive(true);
+    };
+
+    const deactivateFrame = () => {
+        frameCallback.setActive(false);
+    };
+
+    const frameCallback = useFrameCallback((frameInfo) => {
+        const dt = frameInfo.timeSincePreviousFrame ?? 16.6;
+        const inertia = clamp(inertiaX.value - dt * INERTIA_DECAY_PER_MS, 0, 1);
+        inertiaX.value = inertia;
+        const baseValue = interpolate(pointerDownY.value, [0, 1], [0, 0.1]);
+
+        scaleY.value = withSpring(1 + baseValue - inertia * 0.3, SQUISH_SPRING);
+    }, false);
+
+    const gesture = usePanGesture({
+        onBegin: () => {
+            if (timeoutId.value !== -1) {
+                clearTimeout(timeoutId.value);
+                timeoutId.value = -1;
+            }
+            runOnJS(activateFrame)();
+        },
+        onTouchesDown: (e) => {
+            inertiaX.value = 99;
+            pointerDownY.value = 1;
+            scaleX.value = withSpring(1.12, PRESS_SPRING);
+            const touchX = e.allTouches[0].x;
+            const clamped = clamp(touchX, HALF_WIDTH, trackWidth - HALF_WIDTH);
+            leftEdge.value = withSpring(clamped - HALF_WIDTH, PRESS_SPRING);
+            rightEdge.value = withSpring(clamped + HALF_WIDTH, PRESS_SPRING);
+            centerX.value = clamped;
+        },
+        onTouchesUp: (e) => {
+            pointerDownY.value = 0;
+        },
+        onUpdate: (e) => {
+            moveTo(e.x, e.velocityX);
+        },
+        onFinalize: (e) => {
+            end(e);
+            timeoutId.value = setTimeout(() => {
+                runOnJS(deactivateFrame)();
+                timeoutId.value = -1;
+            }, IDLE_TIMEOUT_MS);
+        },
+    });
 
     return { currentIndex, gesture, setTrackWidth, updateTabSize, pillStyle };
 };

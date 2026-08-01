@@ -55,7 +55,7 @@ export const Tabs = () => {
     return (
         <GestureDetector gesture={gesture}>
             <View
-                style={[styles.track, { padding: 0 }]}
+                style={[styles.track]}
                 onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
             >
                 <Animated.View
@@ -75,8 +75,8 @@ export const Tabs = () => {
                         },
                     ]}
                 >
-                    {tabs.map((icon) =>
-                        cloneElement(icon as any, { isActive: true }),
+                    {tabs.map((icon, index) =>
+                        cloneElement(icon as any, { isActive: true, key: index }),
                     )}
                 </MaskedView>
 
@@ -85,6 +85,7 @@ export const Tabs = () => {
                         onMeasure: (size: any) => {
                             updateTabSize(index, size);
                         },
+                        key: index
                     }),
                 )}
             </View>
