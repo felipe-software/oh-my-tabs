@@ -6,6 +6,7 @@
       "name": "oh-my-tabs",
       "dependencies": {
         "@expo/ui": "~57.0.8",
+        "@react-native-masked-view/masked-view": "^0.3.2",
         "expo": "~57.0.9",
         "expo-constants": "~57.0.8",
         "expo-device": "~57.0.1",

@@ -1,17 +1,15 @@
-import { Size, TabItem, TabItemProps } from "@/components/tab-item";
+import { Size, TabItem } from "@/components/tab-item";
 import {
-    CameraIcon,
     GearSixIcon,
     HouseIcon,
     ImagesSquareIcon,
 } from "phosphor-react-native";
-import { cloneElement, ReactElement, useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { cloneElement, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { PanHandlerData } from "react-native-gesture-handler/lib/typescript/v3/hooks/gestures/pan/PanTypes";
 import { GestureEndEvent } from "react-native-gesture-handler/lib/typescript/v3/types";
 import Animated, {
-    cancelAnimation,
     clamp,
     Extrapolation,
     interpolate,
@@ -20,6 +18,7 @@ import Animated, {
     withSpring,
 } from "react-native-reanimated";
 import { runOnJS } from "react-native-worklets";
+import MaskedView from "@react-native-masked-view/masked-view";
 
 const FRONT_EDGE_SPRING = { mass: 0.32, stiffness: 520, damping: 32 };
 const TRAILING_EDGE_SPRING = { mass: 0.72, stiffness: 230, damping: 21 };
@@ -63,9 +62,7 @@ export const Tabs = () => {
 
     const snapPoints = tabSizes.map((tab, i) => tab.width / 2 + tab.x);
 
-    useEffect(() => {
-
-    }, [snapPoints])
+    useEffect(() => {}, [snapPoints]);
 
     const moveTo = (x: number, velocityX: number) => {
         "worklet";
@@ -149,7 +146,7 @@ export const Tabs = () => {
         };
     });
 
-    const updateTab = (index: number, newValue: Size) => {
+    const updateTabSize = (index: number, newValue: Size) => {
         console.log(index, newValue);
         setTabSizes((oldValue) => {
             const copy = [...oldValue];
@@ -162,55 +159,74 @@ export const Tabs = () => {
 
     // const tabs: TabItemProps = []
 
+    const tabs = [
+        <TabItem
+            icon={
+                <HouseIcon
+                    style={{
+                        transform: [{ scale: 1.5 }],
+                    }}
+                    size={16}
+                    weight="duotone"
+                />
+            }
+            isActive={false}
+            text="Home"
+            onMeasure={(size) => {}}
+        />,
+        <TabItem
+            icon={
+                <ImagesSquareIcon
+                    style={{
+                        transform: [{ scale: 1.5 }],
+                    }}
+                    size={16}
+                    weight="duotone"
+                />
+            }
+            isActive={false}
+            text="Camera"
+            onMeasure={(size) => {}}
+        />,
+        <TabItem
+            icon={
+                <GearSixIcon
+                    style={{
+                        transform: [{ scale: 1.5 }],
+                    }}
+                    size={16}
+                    weight="duotone"
+                />
+            }
+            isActive={false}
+            text="Settings"
+            onMeasure={(size) => {}}
+        />,
+    ];
+
     return (
         <GestureDetector gesture={gesture}>
             <View
                 style={styles.track}
                 onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
             >
-                <Animated.View style={[styles.pill, pillStyle]} />
-                <TabItem
-                    icon={
-                        <HouseIcon
-                            style={{
-                                transform: [{ scale: 1.5 }],
-                            }}
-                            size={16}
-                            weight="duotone"
-                        />
+                <Animated.View style={[styles.pill, pillStyle, { zIndex: 2 }]} />
+                <MaskedView
+                    maskElement={
+                        <Animated.View style={[styles.pill, pillStyle]} />
                     }
-                    isActive={currentIndex === 0}
-                    text="Home"
-                    onMeasure={(size) => updateTab(0, size)}
-                />
-                <TabItem
-                    icon={
-                        <ImagesSquareIcon
-                            style={{
-                                transform: [{ scale: 1.5 }],
-                            }}
-                            size={16}
-                            weight="duotone"
-                        />
-                    }
-                    isActive={currentIndex === 1}
-                    text="Camera"
-                    onMeasure={(size) => updateTab(1, size)}
-                />
-                <TabItem
-                    icon={
-                        <GearSixIcon
-                            style={{
-                                transform: [{ scale: 1.5 }],
-                            }}
-                            size={16}
-                            weight="duotone"
-                        />
-                    }
-                    isActive={currentIndex === 2}
-                    text="Settings"
-                    onMeasure={(size) => updateTab(2, size)}
-                />
+                    style={[styles.track, StyleSheet.absoluteFill, { backgroundColor: "#c0c0c0", zIndex: 10, borderRadius: 999, }]}
+                >
+                    {tabs.map((icon) => cloneElement(icon as any, { isActive: true }))}
+                </MaskedView>
+
+                {tabs.map((icon, index) =>
+                    cloneElement<any>(icon as any, {
+                        onMeasure: (size: any) => {
+                            updateTabSize(index, size);
+                        },
+                    }),
+                )}
             </View>
         </GestureDetector>
     );
@@ -223,13 +239,13 @@ const styles = StyleSheet.create({
         height: 64,
         backgroundColor: "#1f1f1f",
         alignItems: "center",
-        padding: 4,
+        padding: 0,
         borderRadius: 32,
         display: "flex",
         flexDirection: "row",
         justifyContent: "space-evenly",
         width: "auto",
-        flexGrow: 0
+        flexGrow: 0,
     },
     pill: {
         position: "absolute",
@@ -238,6 +254,6 @@ const styles = StyleSheet.create({
         height: "100%",
         backgroundColor: "#c0c0c0",
         borderRadius: 999,
-        zIndex: 0
+        zIndex: 0,
     },
 });
