@@ -1,5 +1,6 @@
 import { Size, TabItem, TabItemProps } from "@/components/tab-item";
 import {
+    CameraIcon,
     GearSixIcon,
     HouseIcon,
     ImagesSquareIcon,
@@ -63,7 +64,7 @@ export const Tabs = () => {
     const snapPoints = tabSizes.map((tab, i) => tab.width / 2 + tab.x);
 
     useEffect(() => {
-        
+
     }, [snapPoints])
 
     const moveTo = (x: number, velocityX: number) => {
@@ -210,19 +211,6 @@ export const Tabs = () => {
                     text="Settings"
                     onMeasure={(size) => updateTab(2, size)}
                 />
-                {/* <TabItem
-                    icon={
-                        <GearSixIcon
-                            style={{
-                                transform: [{ scale: 1.5 }],
-                            }}
-                            size={16}
-                            weight="duotone"
-                        />
-                    }
-                    text="Settings"
-                    onMeasure={(size) => updateTab(4, size)}
-                /> */}
             </View>
         </GestureDetector>
     );
