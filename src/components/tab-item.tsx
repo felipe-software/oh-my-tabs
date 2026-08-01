@@ -13,10 +13,10 @@ export interface TabItemProps {
     icon: ReactElement;
     text: string;
     onMeasure?: (s: Size) => void;
-    isActive: boolean;
+    isActive?: boolean;
 }
 
-export const TabItem = ({ icon, text, onMeasure, isActive }: TabItemProps) => {
+export const TabItem = ({ icon, text, onMeasure, isActive = false }: TabItemProps) => {
     const activeColor = "#000000"
     return (
         <Animated.View

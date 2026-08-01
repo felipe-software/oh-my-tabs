@@ -24,7 +24,6 @@ export const Tabs = () => {
                     weight="duotone"
                 />
             }
-            isActive={false}
             text="Home"
         />,
         <TabItem
@@ -37,7 +36,6 @@ export const Tabs = () => {
                     weight="duotone"
                 />
             }
-            isActive={false}
             text="Camera"
         />,
         <TabItem
@@ -50,7 +48,6 @@ export const Tabs = () => {
                     weight="duotone"
                 />
             }
-            isActive={false}
             text="Settings"
         />,
     ];
