@@ -1,4 +1,4 @@
 # oh-my-tabs
-![preview](https://f.feridinha.com/R1VQT.gif "Preview")
+![preview](https://f.feridinha.com/OwoiZ.gif "Preview")
 
 Simple bottom tabs

@@ -17,6 +17,7 @@ export interface TabItemProps {
 }
 
 export const TabItem = ({ icon, text, onMeasure, isActive }: TabItemProps) => {
+    const activeColor = "#000000"
     return (
         <Animated.View
             style={{ flex: 1, maxWidth: 96, zIndex: 1 }}
@@ -37,7 +38,7 @@ export const TabItem = ({ icon, text, onMeasure, isActive }: TabItemProps) => {
                     style={{ transform: [{ scale: 1.1 }, { translateY: 2 }] }}
                 >
                     {cloneElement(icon as ReactElement<any>, {
-                        color: isActive ? "#000" : "#888",
+                        color: isActive ? activeColor : "#888",
                         weight: isActive ? "fill" : "duotone",
                     })}
                 </View>
@@ -45,7 +46,8 @@ export const TabItem = ({ icon, text, onMeasure, isActive }: TabItemProps) => {
                     style={{
                         fontSize: 14,
                         transform: [{ translateY: 2 }],
-                        color: isActive ? "black" : "#c0c0c0",
+                        color: isActive ? activeColor : "#c0c0c0",
+                        fontWeight: isActive ? "700" : "400",
                     }}
                 >
                     {text}

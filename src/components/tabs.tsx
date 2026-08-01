@@ -1,5 +1,6 @@
 import { Size, TabItem } from "@/components/tab-item";
 import {
+    CameraIcon,
     GearSixIcon,
     HouseIcon,
     ImagesSquareIcon,
@@ -176,7 +177,7 @@ export const Tabs = () => {
         />,
         <TabItem
             icon={
-                <ImagesSquareIcon
+                <CameraIcon
                     style={{
                         transform: [{ scale: 1.5 }],
                     }}
@@ -207,7 +208,7 @@ export const Tabs = () => {
     return (
         <GestureDetector gesture={gesture}>
             <View
-                style={styles.track}
+                style={[styles.track, { padding: 0 }]}
                 onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
             >
                 <Animated.View style={[styles.pill, pillStyle, { zIndex: 2 }]} />
@@ -215,7 +216,7 @@ export const Tabs = () => {
                     maskElement={
                         <Animated.View style={[styles.pill, pillStyle]} />
                     }
-                    style={[styles.track, StyleSheet.absoluteFill, { backgroundColor: "#c0c0c0", zIndex: 10, borderRadius: 999, }]}
+                    style={[styles.track, StyleSheet.absoluteFill, { backgroundColor: "#c0c0c0", zIndex: 10, borderRadius: 999 }]}
                 >
                     {tabs.map((icon) => cloneElement(icon as any, { isActive: true }))}
                 </MaskedView>
