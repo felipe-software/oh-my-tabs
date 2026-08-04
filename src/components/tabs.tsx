@@ -1,5 +1,10 @@
 import { TabItem } from "@/components/tab-item";
-import { DISTORTION, TABBAR_LAYOUT } from "@/constants";
+import {
+    DEFAULT_TAB_BAR_COLORS,
+    DISTORTION,
+    TABBAR_LAYOUT,
+    type TabBarColors,
+} from "@/constants";
 import { usePillJelly } from "@/hooks/use-pill-jelly";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { MaterialIcons } from "@react-native-vector-icons/material-icons/static";
@@ -22,6 +27,7 @@ import Svg, {
 } from "react-native-svg";
 
 interface TabsProps {
+    colors?: Partial<TabBarColors>;
     displayScale?: number;
     recording?: boolean;
     touchFeedbackEnabled?: boolean;
@@ -122,12 +128,17 @@ const TouchFeedback = ({
 );
 
 export const Tabs = ({
+    colors,
     displayScale = 1,
     recording = false,
     touchFeedbackEnabled = true,
     touchFeedbackOpacity = DISTORTION.touchFeedback.opacity,
     touchFeedbackScale = DISTORTION.touchFeedback.scale,
 }: TabsProps) => {
+    const resolvedColors = {
+        ...DEFAULT_TAB_BAR_COLORS,
+        ...colors,
+    };
     const maskOverscanX =
         TABBAR_LAYOUT.maskOverscanX * displayScale;
     const maskOverscanY =
@@ -155,25 +166,37 @@ export const Tabs = ({
 
     const tabs = [
         <TabItem
+            activeColor={resolvedColors.activeContent}
             displayScale={displayScale}
             icon={<MaterialIcons name="home" size={iconSize} />}
+            inactiveColor={resolvedColors.inactiveContent}
+            key="home"
             text="Home"
         />,
         <TabItem
+            activeColor={resolvedColors.activeContent}
             displayScale={displayScale}
             icon={<MaterialIcons name="photo-camera" size={iconSize} />}
+            inactiveColor={resolvedColors.inactiveContent}
+            key="camera"
             text="Camera"
         />,
         <TabItem
+            activeColor={resolvedColors.activeContent}
             displayScale={displayScale}
             icon={<MaterialIcons name="settings" size={iconSize} />}
+            inactiveColor={resolvedColors.inactiveContent}
+            key="settings"
             text="Settings"
         />,
         <TabItem
+            activeColor={resolvedColors.activeContent}
             displayScale={displayScale}
             icon={<MaterialIcons name="format-paint" size={iconSize} />}
+            inactiveColor={resolvedColors.inactiveContent}
+            key="walls"
             text="Walls"
-        />
+        />,
     ];
     const tabCount = tabs.length;
     const {
@@ -224,7 +247,11 @@ export const Tabs = ({
                         <Animated.View
                             style={[
                                 styles.surface,
-                                { borderRadius: trackHeight / 2 },
+                                {
+                                    backgroundColor:
+                                        resolvedColors.surface,
+                                    borderRadius: trackHeight / 2,
+                                },
                             ]}
                         />
 
@@ -289,7 +316,15 @@ export const Tabs = ({
                                     />
                                 }
                             >
-                                <View style={styles.selectedSurface} />
+                                <View
+                                    style={[
+                                        styles.selectedSurface,
+                                        {
+                                            backgroundColor:
+                                                resolvedColors.selectedSurface,
+                                        },
+                                    ]}
+                                />
                                 {touchFeedbackEnabled && (
                                     <TouchFeedback
                                         animatedStyle={
@@ -386,7 +421,6 @@ const styles = StyleSheet.create({
         right: 0,
         top: 0,
         bottom: 0,
-        backgroundColor: "#1f1f1f",
     },
     touchFeedbackClip: {
         position: "absolute",
@@ -425,7 +459,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         top: 0,
-        backgroundColor: "#cecece",
     },
     selectedTabsRow: {
         position: "absolute",
