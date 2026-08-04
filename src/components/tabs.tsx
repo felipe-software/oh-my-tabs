@@ -8,8 +8,8 @@ import {
 import { usePillJelly } from "../hooks/use-pill-jelly";
 import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
-import { cloneElement, type ReactElement } from "react";
-import { StyleSheet, View } from "react-native";
+import { cloneElement, useRef, type ReactElement } from "react";
+import { Platform, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
@@ -40,6 +40,7 @@ export const Tabs = ({
     touchFeedbackOpacity = DISTORTION.touchFeedback.opacity,
     touchFeedbackScale = DISTORTION.touchFeedback.scale,
 }: TabsProps) => {
+    const trackRef = useRef<View>(null);
     const resolvedColors = {
         ...DEFAULT_TAB_BAR_COLORS,
         ...colors,
@@ -94,6 +95,7 @@ export const Tabs = ({
         pressedStyle,
         selectedTouchFeedbackStyle,
         setTrackWidth,
+        setWebTrackPageX,
         tabbarStyle,
         touchFeedbackStyle,
     } = usePillJelly(
@@ -116,15 +118,21 @@ export const Tabs = ({
                 <Animated.View
                     collapsable={false}
                     pointerEvents="box-only"
+                    ref={trackRef}
                     testID="tabs-drag-surface"
                     style={[
                         styles.track,
                         { height: trackHeight },
                         tabbarStyle,
                     ]}
-                    onLayout={(event) =>
-                        setTrackWidth(event.nativeEvent.layout.width)
-                    }
+                    onLayout={(event) => {
+                        setTrackWidth(event.nativeEvent.layout.width);
+                        if (Platform.OS === "web") {
+                            trackRef.current?.measureInWindow((x) =>
+                                setWebTrackPageX(x),
+                            );
+                        }
+                    }}
                 >
                     <Animated.View
                         pointerEvents="none"

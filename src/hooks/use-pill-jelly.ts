@@ -10,7 +10,7 @@ import {
     type PillJellyFrameState,
 } from "../utils/pill-jelly-animation";
 import { usePanGesture } from "react-native-gesture-handler";
-import type { ViewStyle } from "react-native";
+import { Platform, type ViewStyle } from "react-native";
 import {
     clamp,
     useAnimatedStyle,
@@ -18,6 +18,8 @@ import {
     useFrameCallback,
     useSharedValue,
 } from "react-native-reanimated";
+
+const IS_WEB = Platform.OS === "web";
 
 export const usePillJelly = (
     tabCount: number,
@@ -65,6 +67,7 @@ export const usePillJelly = (
     const isDragging = useSharedValue(0);
     const releasePending = useSharedValue(0);
     const downX = useSharedValue(0);
+    const webTrackPageX = useSharedValue(Number.NaN);
     const movedDistance = useSharedValue(0);
     const dragStartTarget = useSharedValue(0);
     const dragStartPanelOffset = useSharedValue(0);
@@ -210,6 +213,39 @@ export const usePillJelly = (
         releasePending.value = 1;
     };
 
+    const beginGesture = (
+        localX: number,
+        localY: number,
+        absoluteX: number,
+    ) => {
+        "worklet";
+
+        beginTabbarInteraction(localX, localY, absoluteX);
+        downX.value = localX;
+        movedDistance.value = 0;
+
+        const tabWidth = getTabWidth(
+            trackWidth.value,
+            trackInset,
+            tabCount,
+        );
+        if (PILL_JELLY.snapOnPointerDown && tabWidth > 0) {
+            targetValue.value = clamp(
+                Math.floor((localX - trackInset) / tabWidth),
+                0,
+                getMaxTabIndex(tabCount),
+            );
+        }
+
+        dragStartTarget.value = targetValue.value;
+        dragStartPanelOffset.value = rawPanelOffset.value;
+        isDragging.value = 1;
+        releasePending.value = 0;
+        pressTarget.value = 1;
+        shapeTarget.value = PILL_JELLY.pressedScale;
+        rawPanelOffsetVelocity.value = 0;
+    };
+
     const gesture = usePanGesture({
         minDistance: 0,
         maxPointers: 1,
@@ -221,7 +257,13 @@ export const usePillJelly = (
                 return;
             }
 
-            const localX = recording ? firstTouch.y : firstTouch.x;
+            // RNGH Web can report x relative to its display: contents
+            // wrapper. Derive it from the measured track instead.
+            const localX = recording
+                ? firstTouch.y
+                : IS_WEB && Number.isFinite(webTrackPageX.value)
+                  ? firstTouch.absoluteX - webTrackPageX.value
+                  : firstTouch.x;
             const localY = recording
                 ? trackHeight / 2
                 : firstTouch.y;
@@ -229,30 +271,7 @@ export const usePillJelly = (
                 ? firstTouch.absoluteY
                 : firstTouch.absoluteX;
 
-            beginTabbarInteraction(localX, localY, absoluteX);
-            downX.value = localX;
-            movedDistance.value = 0;
-
-            const tabWidth = getTabWidth(
-                trackWidth.value,
-                trackInset,
-                tabCount,
-            );
-            if (PILL_JELLY.snapOnPointerDown && tabWidth > 0) {
-                targetValue.value = clamp(
-                    Math.floor((localX - trackInset) / tabWidth),
-                    0,
-                    getMaxTabIndex(tabCount),
-                );
-            }
-
-            dragStartTarget.value = targetValue.value;
-            dragStartPanelOffset.value = rawPanelOffset.value;
-            isDragging.value = 1;
-            releasePending.value = 0;
-            pressTarget.value = 1;
-            shapeTarget.value = PILL_JELLY.pressedScale;
-            rawPanelOffsetVelocity.value = 0;
+            beginGesture(localX, localY, absoluteX);
         },
         onUpdate: (event) => {
             const tabWidth = getTabWidth(
@@ -283,7 +302,13 @@ export const usePillJelly = (
 
             rawPanelOffset.value =
                 dragStartPanelOffset.value + horizontalTranslation;
-            updateDistortion(verticalTranslation, absoluteX);
+            updateDistortion(
+                verticalTranslation,
+                absoluteX,
+                IS_WEB
+                    ? downX.value + horizontalTranslation
+                    : null,
+            );
             movedDistance.value = Math.max(
                 movedDistance.value,
                 Math.abs(horizontalTranslation),
@@ -298,6 +323,12 @@ export const usePillJelly = (
         setDistortionTrackWidth(width);
     };
 
+    const setWebTrackPageX = (pageX: number) => {
+        if (IS_WEB && Number.isFinite(pageX)) {
+            webTrackPageX.value = pageX;
+        }
+    };
+
     return {
         activeItemStyle,
         activePillClipStyle,
@@ -309,6 +340,7 @@ export const usePillJelly = (
         pressedStyle,
         selectedTouchFeedbackStyle,
         setTrackWidth,
+        setWebTrackPageX,
         tabbarStyle,
         touchFeedbackStyle,
     };

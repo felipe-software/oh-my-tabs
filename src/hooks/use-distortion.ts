@@ -56,7 +56,11 @@ export const useDistortion = (
         touchFeedbackOpacity.value = withSpring(1, DISTORTION.spring);
     };
 
-    const update = (verticalTranslation: number, absoluteX: number) => {
+    const update = (
+        verticalTranslation: number,
+        absoluteX: number,
+        localX: number | null = null,
+    ) => {
         "worklet";
 
         const appliedTranslation =
@@ -73,19 +77,30 @@ export const useDistortion = (
         translateY.value = dragOriginY.value + appliedTranslation;
         scaleX.value =
             1 - progress * DISTORTION.verticalDrag.distortion;
-        transformOriginX.value = getPointerOrigin(
-            absoluteX,
-            trackWidth.value,
-            pointerInitialAbsoluteX.value,
-            pointerInitialLocalX.value,
-        );
+        transformOriginX.value =
+            localX === null
+                ? getPointerOrigin(
+                      absoluteX,
+                      trackWidth.value,
+                      pointerInitialAbsoluteX.value,
+                      pointerInitialLocalX.value,
+                  )
+                : clamp(localX, 0, trackWidth.value);
     };
 
     const end = () => {
         "worklet";
 
         translateY.value = withSpring(0, DISTORTION.spring);
-        scaleX.value = withSpring(1, DISTORTION.spring);
+        scaleX.value = withSpring(
+            1,
+            DISTORTION.spring,
+            (finished) => {
+                if (finished) {
+                    transformOriginX.value = trackWidth.value / 2;
+                }
+            },
+        );
         pressedScale.value = withSpring(1, DISTORTION.spring);
         touchFeedbackOpacity.value = withSpring(
             0,
@@ -98,15 +113,26 @@ export const useDistortion = (
         transformOriginX.value = width / 2;
     };
 
+    // Reanimated Web does not reliably commit animated transformOrigin
+    // updates. A centered CSS origin plus paired translations produces the
+    // same moving pivot and works consistently on every platform.
     const tabbarStyle = useAnimatedStyle(() => ({
         transformOrigin: [
-            transformOriginX.value,
+            "50%",
             trackHeight / 2,
             0,
-        ] as [number, number, number],
+        ] as [string, number, number],
         transform: [
+            {
+                translateX:
+                    transformOriginX.value - trackWidth.value / 2,
+            },
             { translateY: translateY.value },
             { scaleX: scaleX.value },
+            {
+                translateX:
+                    trackWidth.value / 2 - transformOriginX.value,
+            },
         ],
     }));
 

@@ -11,13 +11,19 @@ import {
     type TabsItem,
 } from "oh-my-tabs";
 import { useState } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import {
+    Platform,
+    StyleSheet,
+    useWindowDimensions,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const RECORDING_MODE =
     process.env.EXPO_PUBLIC_RECORDING_MODE === "1" ||
     process.env.EXPO_PUBLIC_RECORDING_MODE === "true";
 const HORIZONTAL_PADDING = 16;
+const WEB_TAB_BAR_MAX_WIDTH = 400;
 
 const ITEMS: TabsItem[] = [
     {
@@ -133,5 +139,11 @@ const styles = StyleSheet.create({
         height: TABBAR_LAYOUT.trackHeight,
         marginBottom: 12,
         width: "100%",
+        ...Platform.select({
+            web: {
+                alignSelf: "center",
+                maxWidth: WEB_TAB_BAR_MAX_WIDTH,
+            },
+        }),
     },
 });
