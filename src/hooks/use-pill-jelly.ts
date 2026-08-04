@@ -1,4 +1,13 @@
-import { useTabbarDistortion } from "@/hooks/use-tabbar-distortion";
+import { useDistortion } from "@/hooks/use-distortion";
+import {
+    getHorizontalPanelOffset,
+    getTabWidth,
+} from "@/utils/animation";
+import {
+    advancePillJellyFrame,
+    type PillJellyFrameConfig,
+    type PillJellyFrameState,
+} from "@/utils/pill-jelly-animation";
 import { usePanGesture } from "react-native-gesture-handler";
 import {
     clamp,
@@ -17,137 +26,19 @@ const SNAP_ON_POINTER_DOWN = true;
  * These are the exact stiffness/damping-ratio pairs used by
  * AndroidLiquidGlass' DampedDragAnimation.
  */
-const VALUE_SPRING = { stiffness: 1_000, dampingRatio: 1 };
-const VELOCITY_SPRING = { stiffness: 300, dampingRatio: 0.5 };
-const PRESS_SPRING = { stiffness: 1_000, dampingRatio: 1 };
-const SCALE_X_SPRING = { stiffness: 250, dampingRatio: 0.6 };
-const SCALE_Y_SPRING = { stiffness: 250, dampingRatio: 0.7 };
-const PANEL_SPRING = { stiffness: 300, dampingRatio: 1 };
-
-type SpringStep = {
-    value: number;
-    velocity: number;
-};
-
-/**
- * Advances the same unit-mass damped spring model used by Compose's
- * SpringSpec. Solving the spring analytically keeps it stable on both 60 Hz
- * and 120 Hz displays and lets us retain the real value velocity.
- */
-const advanceSpring = (
-    value: number,
-    velocity: number,
-    target: number,
-    stiffness: number,
-    dampingRatio: number,
-    deltaSeconds: number,
-): SpringStep => {
-    "worklet";
-
-    const displacement = value - target;
-    if (Math.abs(displacement) < 0.0001 && Math.abs(velocity) < 0.0001) {
-        return { value: target, velocity: 0 };
-    }
-
-    const naturalFrequency = Math.sqrt(stiffness);
-
-    if (dampingRatio === 1) {
-        const decay = Math.exp(-naturalFrequency * deltaSeconds);
-        const coefficient = velocity + naturalFrequency * displacement;
-
-        return {
-            value:
-                target +
-                (displacement + coefficient * deltaSeconds) * decay,
-            velocity:
-                (velocity -
-                    naturalFrequency * coefficient * deltaSeconds) *
-                decay,
-        };
-    }
-
-    const dampedFrequency =
-        naturalFrequency * Math.sqrt(1 - dampingRatio * dampingRatio);
-    const decay = Math.exp(
-        -dampingRatio * naturalFrequency * deltaSeconds,
-    );
-    const angle = dampedFrequency * deltaSeconds;
-    const cosine = Math.cos(angle);
-    const sine = Math.sin(angle);
-
-    return {
-        value:
-            target +
-            decay *
-                (displacement * cosine +
-                    ((velocity +
-                        dampingRatio * naturalFrequency * displacement) /
-                        dampedFrequency) *
-                        sine),
-        velocity:
-            decay *
-            (velocity * cosine -
-                ((dampingRatio * naturalFrequency * velocity +
-                    naturalFrequency * naturalFrequency * displacement) /
-                    dampedFrequency) *
-                    sine),
-    };
-};
-
-/** Compose's EaseOut is CubicBezierEasing(0, 0, 0.58, 1). */
-const easeOut = (input: number): number => {
-    "worklet";
-
-    const x = clamp(input, 0, 1);
-    let low = 0;
-    let high = 1;
-    let parameter = x;
-
-    // Invert the bezier's x component, then evaluate its y component.
-    for (let iteration = 0; iteration < 10; iteration += 1) {
-        const inverse = 1 - parameter;
-        const bezierX =
-            3 * inverse * parameter * parameter * 0.58 +
-            parameter * parameter * parameter;
-
-        if (bezierX < x) {
-            low = parameter;
-        } else {
-            high = parameter;
-        }
-        parameter = (low + high) / 2;
-    }
-
-    const inverse = 1 - parameter;
-    return (
-        3 * inverse * parameter * parameter +
-        parameter * parameter * parameter
-    );
-};
-
-const getHorizontalPanelOffset = (
-    rawOffset: number,
-    trackWidth: number,
-    geometryScale: number,
-): number => {
-    "worklet";
-
-    if (trackWidth <= 0) {
-        return 0;
-    }
-
-    const fraction = clamp(rawOffset / trackWidth, -1, 1);
-    if (fraction === 0) {
-        return 0;
-    }
-
-    return (
-        Math.sign(fraction) *
-        4 *
-        geometryScale *
-        easeOut(Math.abs(fraction))
-    );
-};
+const FRAME_CONFIG = {
+    // Keep the indicator inflated until it is within 2.5% of its snap point.
+    releaseDistanceFraction: 0.025,
+    springs: {
+        panel: { stiffness: 300, dampingRatio: 1 },
+        press: { stiffness: 1_000, dampingRatio: 1 },
+        scaleX: { stiffness: 250, dampingRatio: 0.6 },
+        scaleY: { stiffness: 250, dampingRatio: 0.7 },
+        value: { stiffness: 1_000, dampingRatio: 1 },
+        velocity: { stiffness: 300, dampingRatio: 0.5 },
+    },
+    tabCount: TAB_COUNT,
+} as const satisfies PillJellyFrameConfig;
 
 export const usePillJelly = (recording = false, displayScale = 1) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
@@ -159,7 +50,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
         setTrackWidth: setDistortionTrackWidth,
         tabbarStyle,
         update: updateDistortion,
-    } = useTabbarDistortion(geometryScale);
+    } = useDistortion(geometryScale);
     const trackWidth = useSharedValue(0);
     const value = useSharedValue(0);
     const valueVelocity = useSharedValue(0);
@@ -188,100 +79,34 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
     const dragStartTarget = useSharedValue(0);
     const dragStartPanelOffset = useSharedValue(0);
 
+    const frameState: PillJellyFrameState = {
+        baseScaleX,
+        baseScaleXRate,
+        baseScaleY,
+        baseScaleYRate,
+        filteredVelocity,
+        filteredVelocityRate,
+        isDragging,
+        pressProgress,
+        pressProgressRate,
+        pressTarget,
+        rawPanelOffset,
+        rawPanelOffsetVelocity,
+        releasePending,
+        shapeTarget,
+        targetValue,
+        value,
+        valueVelocity,
+    };
+
     useFrameCallback(({ timeSincePreviousFrame }) => {
         "worklet";
 
-        if (timeSincePreviousFrame === null) {
-            return;
-        }
-
-        // Ignore very large debugger/background gaps without changing the
-        // spring response during normal frames.
-        const deltaSeconds = Math.min(timeSincePreviousFrame / 1_000, 0.064);
-
-        const valueStep = advanceSpring(
-            value.value,
-            valueVelocity.value,
-            targetValue.value,
-            VALUE_SPRING.stiffness,
-            VALUE_SPRING.dampingRatio,
-            deltaSeconds,
+        advancePillJellyFrame(
+            frameState,
+            FRAME_CONFIG,
+            timeSincePreviousFrame,
         );
-        value.value = valueStep.value;
-        valueVelocity.value = valueStep.velocity;
-
-        const velocityTarget =
-            isDragging.value === 1
-                ? valueVelocity.value / (TAB_COUNT - 1)
-                : 0;
-        const velocityStep = advanceSpring(
-            filteredVelocity.value,
-            filteredVelocityRate.value,
-            velocityTarget,
-            VELOCITY_SPRING.stiffness,
-            VELOCITY_SPRING.dampingRatio,
-            deltaSeconds,
-        );
-        filteredVelocity.value = velocityStep.value;
-        filteredVelocityRate.value = velocityStep.velocity;
-
-        if (isDragging.value === 0) {
-            const panelStep = advanceSpring(
-                rawPanelOffset.value,
-                rawPanelOffsetVelocity.value,
-                0,
-                PANEL_SPRING.stiffness,
-                PANEL_SPRING.dampingRatio,
-                deltaSeconds,
-            );
-            rawPanelOffset.value = panelStep.value;
-            rawPanelOffsetVelocity.value = panelStep.velocity;
-        }
-
-        // AndroidLiquidGlass keeps the indicator inflated until its position
-        // is within 2.5% of the selected snap point.
-        if (
-            releasePending.value === 1 &&
-            Math.abs(value.value - targetValue.value) <
-                (TAB_COUNT - 1) * 0.025
-        ) {
-            releasePending.value = 0;
-            pressTarget.value = 0;
-            shapeTarget.value = 1;
-        }
-
-        const pressStep = advanceSpring(
-            pressProgress.value,
-            pressProgressRate.value,
-            pressTarget.value,
-            PRESS_SPRING.stiffness,
-            PRESS_SPRING.dampingRatio,
-            deltaSeconds,
-        );
-        pressProgress.value = pressStep.value;
-        pressProgressRate.value = pressStep.velocity;
-
-        const scaleXStep = advanceSpring(
-            baseScaleX.value,
-            baseScaleXRate.value,
-            shapeTarget.value,
-            SCALE_X_SPRING.stiffness,
-            SCALE_X_SPRING.dampingRatio,
-            deltaSeconds,
-        );
-        baseScaleX.value = scaleXStep.value;
-        baseScaleXRate.value = scaleXStep.velocity;
-
-        const scaleYStep = advanceSpring(
-            baseScaleY.value,
-            baseScaleYRate.value,
-            shapeTarget.value,
-            SCALE_Y_SPRING.stiffness,
-            SCALE_Y_SPRING.dampingRatio,
-            deltaSeconds,
-        );
-        baseScaleY.value = scaleYStep.value;
-        baseScaleYRate.value = scaleYStep.velocity;
     });
 
     const panelOffset = useDerivedValue(() => {
@@ -301,9 +126,10 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
     }));
 
     const pillMaskStyle = useAnimatedStyle(() => {
-        const tabWidth = Math.max(
-            0,
-            (trackWidth.value - trackInset * 2) / TAB_COUNT,
+        const tabWidth = getTabWidth(
+            trackWidth.value,
+            trackInset,
+            TAB_COUNT,
         );
         const velocity = filteredVelocity.value / 10;
         const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
@@ -331,8 +157,11 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
         rawPanelOffsetVelocity.value = 0;
         endTabbarInteraction();
 
-        const tabWidth =
-            (trackWidth.value - trackInset * 2) / TAB_COUNT;
+        const tabWidth = getTabWidth(
+            trackWidth.value,
+            trackInset,
+            TAB_COUNT,
+        );
         let nextIndex: number;
 
         if (movedDistance.value < 4 && tabWidth > 0) {
@@ -368,8 +197,11 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
             downX.value = localX;
             movedDistance.value = 0;
 
-            const tabWidth =
-                (trackWidth.value - trackInset * 2) / TAB_COUNT;
+            const tabWidth = getTabWidth(
+                trackWidth.value,
+                trackInset,
+                TAB_COUNT,
+            );
             if (SNAP_ON_POINTER_DOWN && tabWidth > 0) {
                 targetValue.value = clamp(
                     Math.floor((localX - trackInset) / tabWidth),
@@ -387,8 +219,11 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
             rawPanelOffsetVelocity.value = 0;
         },
         onUpdate: (event) => {
-            const tabWidth =
-                (trackWidth.value - trackInset * 2) / TAB_COUNT;
+            const tabWidth = getTabWidth(
+                trackWidth.value,
+                trackInset,
+                TAB_COUNT,
+            );
             if (tabWidth <= 0) {
                 return;
             }

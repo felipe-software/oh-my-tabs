@@ -1,3 +1,4 @@
+import { getPointerOrigin, rubberBand } from "@/utils/animation";
 import {
     cancelAnimation,
     clamp,
@@ -26,43 +27,7 @@ const SPRING = {
     stiffness: 240,
 };
 
-const rubberBand = (
-    distance: number,
-    dimension: number,
-    coefficient: number,
-): number => {
-    "worklet";
-
-    if (distance === 0) {
-        return 0;
-    }
-
-    const absoluteDistance = Math.abs(distance);
-    const dampedDistance =
-        (1 -
-            1 /
-                ((absoluteDistance * coefficient) / dimension + 1)) *
-        dimension;
-
-    return Math.sign(distance) * dampedDistance;
-};
-
-const getPointerOrigin = (
-    currentAbsolutePosition: number,
-    dimension: number,
-    initialAbsolutePosition: number,
-    initialLocalPosition: number,
-): number => {
-    "worklet";
-
-    const pointerPosition =
-        initialLocalPosition +
-        (currentAbsolutePosition - initialAbsolutePosition);
-
-    return clamp(pointerPosition, 0, dimension);
-};
-
-export const useTabbarDistortion = (displayScale = 1) => {
+export const useDistortion = (displayScale = 1) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const trackHeight = TRACK_HEIGHT * geometryScale;
     const distanceForMaxDistortion =

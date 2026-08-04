@@ -17,7 +17,7 @@ export const TabItem = ({
     isActive = false,
     animatedStyle,
 }: TabItemProps) => {
-    const color = isActive ? "#000000" : "#888888";
+    const color = isActive ? "#000000" : "#afafaf";
 
     return (
         <Animated.View

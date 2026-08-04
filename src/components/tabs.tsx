@@ -24,7 +24,6 @@ export const Tabs = ({
         gesture,
         panelStyle,
         pillMaskStyle,
-        pressedStyle,
         setTrackWidth,
         surfaceStyle,
         tabbarStyle,
@@ -69,7 +68,7 @@ export const Tabs = ({
                 style={[
                     styles.track,
                     { height: trackHeight },
-                    pressedStyle,
+                    tabbarStyle,
                 ]}
                 onLayout={(event) =>
                     setTrackWidth(event.nativeEvent.layout.width)
@@ -77,90 +76,74 @@ export const Tabs = ({
             >
                 <Animated.View
                     style={[
-                        StyleSheet.absoluteFill,
-                        tabbarStyle,
+                        styles.surface,
+                        { borderRadius: trackHeight / 2 },
+                        surfaceStyle,
+                    ]}
+                />
+
+                <Animated.View
+                    style={[
+                        styles.tabsRow,
+                        { paddingHorizontal: trackInset },
+                        panelStyle,
                     ]}
                 >
-                    <Animated.View
-                        style={[
-                            styles.surface,
-                            { borderRadius: trackHeight / 2 },
-                            surfaceStyle,
-                        ]}
-                    />
+                    {tabs.map((tab, index) =>
+                        cloneElement(tab, { key: `inactive-${index}` }),
+                    )}
+                </Animated.View>
 
-                    <Animated.View
-                        style={[
-                            styles.tabsRow,
-                            { paddingHorizontal: trackInset },
-                            panelStyle,
-                        ]}
-                    >
-                        {tabs.map((tab, index) =>
-                            cloneElement(tab, {
-                                key: `inactive-${index}`,
-                            }),
-                        )}
-                    </Animated.View>
-
-                    <Animated.View
-                        pointerEvents="none"
-                        style={[
-                            styles.maskOverscan,
-                            {
-                                bottom: -maskOverscanY,
-                                left: -maskOverscanX,
-                                right: -maskOverscanX,
-                                top: -maskOverscanY,
-                            },
-                            panelStyle,
-                        ]}
-                    >
-                        <MaskedView
-                            style={StyleSheet.absoluteFill}
-                            maskElement={
-                                <Animated.View
-                                    style={[
-                                        styles.pillMask,
-                                        {
-                                            height: itemHeight,
-                                            left:
-                                                maskOverscanX +
-                                                trackInset,
-                                            top:
-                                                maskOverscanY +
-                                                trackInset,
-                                        },
-                                        pillMaskStyle,
-                                    ]}
-                                />
-                            }
-                        >
-                            <View style={styles.selectedSurface} />
-                            <View
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        styles.maskOverscan,
+                        {
+                            bottom: -maskOverscanY,
+                            left: -maskOverscanX,
+                            right: -maskOverscanX,
+                            top: -maskOverscanY,
+                        },
+                        panelStyle,
+                    ]}
+                >
+                    <MaskedView
+                        style={StyleSheet.absoluteFill}
+                        maskElement={
+                            <Animated.View
                                 style={[
-                                    styles.selectedTabsRow,
+                                    styles.pillMask,
                                     {
                                         height: itemHeight,
-                                        left:
-                                            maskOverscanX + trackInset,
-                                        right:
-                                            maskOverscanX + trackInset,
-                                        top:
-                                            maskOverscanY + trackInset,
+                                        left: maskOverscanX + trackInset,
+                                        top: maskOverscanY + trackInset,
                                     },
+                                    pillMaskStyle,
                                 ]}
-                            >
-                                {tabs.map((tab, index) =>
-                                    cloneElement(tab, {
-                                        animatedStyle: activeItemStyle,
-                                        isActive: true,
-                                        key: `active-${index}`,
-                                    }),
-                                )}
-                            </View>
-                        </MaskedView>
-                    </Animated.View>
+                            />
+                        }
+                    >
+                        <View style={styles.selectedSurface} />
+                        <View
+                            style={[
+                                styles.selectedTabsRow,
+                                {
+                                    height: itemHeight,
+                                    left: maskOverscanX + trackInset,
+                                    right: maskOverscanX + trackInset,
+                                    top: maskOverscanY + trackInset,
+                                },
+                            ]}
+                        >
+                            {tabs.map((tab, index) =>
+                                cloneElement(tab, {
+                                    animatedStyle: activeItemStyle,
+                                    isActive: true,
+                                    key: `active-${index}`,
+                                }),
+                            )}
+                        </View>
+                    </MaskedView>
                 </Animated.View>
             </Animated.View>
         </GestureDetector>
@@ -205,7 +188,7 @@ const styles = StyleSheet.create({
         right: 0,
         top: 0,
         bottom: 0,
-        backgroundColor: "#c0c0c0",
+        backgroundColor: "#cecece",
     },
     selectedTabsRow: {
         position: "absolute",
