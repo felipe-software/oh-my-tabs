@@ -43,6 +43,10 @@ yarn-error.*
 /example/android
 /example/.expo
 /example/expo-env.d.ts
+/example-simple/ios
+/example-simple/android
+/example-simple/.expo
+/example-simple/expo-env.d.ts
 
 # Dev stuff, I don't want mp4 into the library :)
 /references

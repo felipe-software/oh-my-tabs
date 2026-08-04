@@ -42,6 +42,11 @@
         "example:android": "bun run --cwd example android",
         "example:ios": "bun run --cwd example ios",
         "example:web": "bun run --cwd example web",
+        "example-simple": "bun run --cwd example-simple start",
+        "example-simple:android": "bun run --cwd example-simple android",
+        "example-simple:ios": "bun run --cwd example-simple ios",
+        "example-simple:pack": "bun pm pack --destination example-simple/vendor",
+        "example-simple:web": "bun run --cwd example-simple web",
         "prepublishOnly": "bun run build",
         "release": "semantic-release",
         "release:dry-run": "semantic-release --dry-run",
@@ -74,7 +79,8 @@
         "typescript": "~6.0.3"
     },
     "workspaces": [
-        "example"
+        "example",
+        "example-simple"
     ],
     "engines": {
         "node": ">=18"

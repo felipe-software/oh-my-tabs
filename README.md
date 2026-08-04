@@ -98,4 +98,4 @@ bun run example:android
 bun run example:ios
 ```
 
-Don't be afraid to open issues or Pull Requests :)
+Don't be afraid to open issues or Pull Requests, especially for documentation! :)
