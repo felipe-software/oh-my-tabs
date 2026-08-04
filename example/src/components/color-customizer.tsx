@@ -9,7 +9,16 @@ import {
 import Slider from "@react-native-community/slider";
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import { useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+    Linking,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
+
+const GITHUB_URL = "https://github.com/felipe-software/oh-my-tabs";
 
 export interface BlurConfig {
     pill: number;
@@ -33,49 +42,42 @@ const COLOR_FIELDS: { key: ColorKey; label: string }[] = [
     { key: "inactiveContent", label: "Inactive content" },
 ];
 
+// Each preset is defined by its pill color — the token people actually
+// reach for. Surfaces stay a neutral dark so the pill does the talking.
 const PALETTES: { colors: TabBarColors; label: string }[] = [
     {
-        label: "Neutral",
+        label: "Blue",
         colors: {
-            activeContent: "#171717",
-            inactiveContent: "#A3A3A3",
-            selectedSurface: "#FAFAFA",
-            surface: "#171717",
-        },
-    },
-    {
-        label: "Stone",
-        colors: {
-            activeContent: "#1C1917",
-            inactiveContent: "#A8A29E",
-            selectedSurface: "#FAFAF9",
-            surface: "#1C1917",
-        },
-    },
-    {
-        label: "Zinc",
-        colors: {
-            activeContent: "#18181B",
-            inactiveContent: "#A1A1AA",
-            selectedSurface: "#FAFAFA",
-            surface: "#18181B",
-        },
-    },
-    {
-        label: "Slate",
-        colors: {
-            activeContent: "#0F172A",
+            activeContent: "#EFF6FF",
             inactiveContent: "#94A3B8",
-            selectedSurface: "#F8FAFC",
+            selectedSurface: "#2563EB",
             surface: "#0F172A",
         },
     },
     {
-        label: "Red",
+        label: "Indigo",
         colors: {
-            activeContent: "#FEF2F2",
+            activeContent: "#EEF2FF",
+            inactiveContent: "#A5B4FC",
+            selectedSurface: "#4F46E5",
+            surface: "#1E1B4B",
+        },
+    },
+    {
+        label: "Violet",
+        colors: {
+            activeContent: "#F5F3FF",
             inactiveContent: "#A1A1AA",
-            selectedSurface: "#DC2626",
+            selectedSurface: "#7C3AED",
+            surface: "#18181B",
+        },
+    },
+    {
+        label: "Pink",
+        colors: {
+            activeContent: "#FDF2F8",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#EC4899",
             surface: "#18181B",
         },
     },
@@ -89,6 +91,15 @@ const PALETTES: { colors: TabBarColors; label: string }[] = [
         },
     },
     {
+        label: "Red",
+        colors: {
+            activeContent: "#FEF2F2",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#DC2626",
+            surface: "#18181B",
+        },
+    },
+    {
         label: "Orange",
         colors: {
             activeContent: "#FFF7ED",
@@ -98,39 +109,48 @@ const PALETTES: { colors: TabBarColors; label: string }[] = [
         },
     },
     {
-        label: "Green",
+        label: "Amber",
         colors: {
-            activeContent: "#F0FDF4",
-            inactiveContent: "#A1A1AA",
-            selectedSurface: "#16A34A",
-            surface: "#18181B",
-        },
-    },
-    {
-        label: "Blue",
-        colors: {
-            activeContent: "#EFF6FF",
-            inactiveContent: "#94A3B8",
-            selectedSurface: "#2563EB",
-            surface: "#0F172A",
-        },
-    },
-    {
-        label: "Yellow",
-        colors: {
-            activeContent: "#422006",
+            activeContent: "#451A03",
             inactiveContent: "#A8A29E",
-            selectedSurface: "#EAB308",
+            selectedSurface: "#F59E0B",
             surface: "#1C1917",
         },
     },
     {
-        label: "Violet",
+        label: "Emerald",
         colors: {
-            activeContent: "#F5F3FF",
+            activeContent: "#ECFDF5",
             inactiveContent: "#A1A1AA",
-            selectedSurface: "#7C3AED",
+            selectedSurface: "#10B981",
             surface: "#18181B",
+        },
+    },
+    {
+        label: "Teal",
+        colors: {
+            activeContent: "#F0FDFA",
+            inactiveContent: "#94A3B8",
+            selectedSurface: "#14B8A6",
+            surface: "#0F172A",
+        },
+    },
+    {
+        label: "Cyan",
+        colors: {
+            activeContent: "#ECFEFF",
+            inactiveContent: "#94A3B8",
+            selectedSurface: "#06B6D4",
+            surface: "#0F172A",
+        },
+    },
+    {
+        label: "Mono",
+        colors: {
+            activeContent: "#171717",
+            inactiveContent: "#A3A3A3",
+            selectedSurface: "#FAFAFA",
+            surface: "#171717",
         },
     },
 ];
@@ -316,7 +336,9 @@ const AccordionSection = ({
                 size={22}
             />
         </Pressable>
-        {expanded && <View style={styles.accordionContent}>{children}</View>}
+        {expanded && (
+            <View style={styles.accordionContent}>{children}</View>
+        )}
     </View>
 );
 
@@ -333,7 +355,10 @@ export const ColorCustomizer = ({
     opacity,
     touchFeedbackColor,
 }: ColorCustomizerProps) => {
-    const [activePanel, setActivePanel] = useState<PanelKey>("palette");
+    const [activePanel, setActivePanel] = useState<PanelKey | null>(null);
+
+    const togglePanel = (panel: PanelKey) =>
+        setActivePanel((current) => (current === panel ? null : panel));
 
     const updateLayout = (key: LayoutNumberKey, value: number) => {
         onConfigChange({
@@ -407,28 +432,37 @@ export const ColorCustomizer = ({
     return (
         <View style={styles.panel}>
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.title}>Tab bar lab</Text>
-                    <Text style={styles.subtitle}>
-                        Every token updates live.
-                    </Text>
+                <Text style={styles.title}>oh-my-tabs</Text>
+                <View style={styles.headerActions}>
+                    <Pressable
+                        accessibilityLabel="Open oh-my-tabs on GitHub"
+                        accessibilityRole="link"
+                        onPress={() => Linking.openURL(GITHUB_URL)}
+                        style={({ pressed }) => [
+                            styles.githubButton,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <MaterialIcons color="#F8FAFC" name="code" size={16} />
+                        <Text style={styles.githubButtonText}>GitHub</Text>
+                    </Pressable>
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={onReset}
+                        style={({ pressed }) => [
+                            styles.resetButton,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <Text style={styles.resetButtonText}>Reset</Text>
+                    </Pressable>
                 </View>
-                <Pressable
-                    accessibilityRole="button"
-                    onPress={onReset}
-                    style={({ pressed }) => [
-                        styles.resetButton,
-                        pressed && styles.pressed,
-                    ]}
-                >
-                    <Text style={styles.resetButtonText}>Reset</Text>
-                </Pressable>
             </View>
 
             <View style={styles.accordion}>
                 <AccordionSection
                     expanded={activePanel === "palette"}
-                    onPress={() => setActivePanel("palette")}
+                    onPress={() => togglePanel("palette")}
                     title="Palette"
                 >
                     <Section title="Theme presets">
@@ -631,7 +665,7 @@ export const ColorCustomizer = ({
 
                 <AccordionSection
                     expanded={activePanel === "layout"}
-                    onPress={() => setActivePanel("layout")}
+                    onPress={() => togglePanel("layout")}
                     title="Layout"
                 >
                     <Section title="Geometry">
@@ -708,7 +742,7 @@ export const ColorCustomizer = ({
 
                 <AccordionSection
                     expanded={activePanel === "motion"}
-                    onPress={() => setActivePanel("motion")}
+                    onPress={() => togglePanel("motion")}
                     title="Motion"
                 >
                     <Section title="Jelly behavior">
@@ -822,7 +856,7 @@ export const ColorCustomizer = ({
 
                 <AccordionSection
                     expanded={activePanel === "touch"}
-                    onPress={() => setActivePanel("touch")}
+                    onPress={() => togglePanel("touch")}
                     title="Touch"
                 >
                     <Section title="Press transform">
@@ -935,25 +969,40 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         paddingHorizontal: 18,
-        paddingBottom: 14,
-        paddingTop: 16,
+        paddingBottom: 10,
+        paddingTop: 12,
     },
     title: {
         color: "#0F172A",
-        fontSize: 21,
+        fontFamily: "monospace",
+        fontSize: 17,
         fontWeight: "700",
         letterSpacing: -0.5,
     },
-    subtitle: {
-        color: "#64748B",
+    headerActions: {
+        alignItems: "center",
+        flexDirection: "row",
+        gap: 8,
+    },
+    githubButton: {
+        alignItems: "center",
+        backgroundColor: "#0F172A",
+        borderRadius: 8,
+        flexDirection: "row",
+        gap: 5,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+    },
+    githubButtonText: {
+        color: "#F8FAFC",
         fontSize: 12,
-        marginTop: 2,
+        fontWeight: "700",
     },
     resetButton: {
         backgroundColor: "#E2E8F0",
         borderRadius: 8,
         paddingHorizontal: 12,
-        paddingVertical: 8,
+        paddingVertical: 7,
     },
     resetButtonText: {
         color: "#334155",
@@ -977,7 +1026,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         paddingHorizontal: 18,
-        paddingVertical: 14,
+        paddingVertical: 10,
     },
     accordionHeaderOpen: {
         backgroundColor: "#FFFFFF",
@@ -993,17 +1042,18 @@ const styles = StyleSheet.create({
     },
     accordionContent: {
         backgroundColor: "#FFFFFF",
+        paddingBottom: 4,
         paddingHorizontal: 18,
         paddingTop: 4,
     },
     section: {
-        marginBottom: 20,
+        marginBottom: 12,
     },
     sectionTitle: {
         color: "#334155",
         fontSize: 12,
         fontWeight: "700",
-        marginBottom: 10,
+        marginBottom: 8,
     },
     paletteGrid: {
         flexDirection: "row",
@@ -1048,7 +1098,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         flexDirection: "row",
         gap: 10,
-        paddingVertical: 9,
+        paddingVertical: 7,
     },
     colorPreview: {
         borderColor: "#CBD5E1",
@@ -1086,7 +1136,7 @@ const styles = StyleSheet.create({
         borderRadius: 9,
         gap: 2,
         paddingHorizontal: 10,
-        paddingVertical: 7,
+        paddingVertical: 6,
     },
     sliderHeader: {
         alignItems: "center",
@@ -1111,7 +1161,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginBottom: 8,
         paddingHorizontal: 10,
-        paddingVertical: 9,
+        paddingVertical: 7,
     },
     toggleTrack: {
         backgroundColor: "#CBD5E1",
