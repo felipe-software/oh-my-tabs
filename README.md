@@ -11,41 +11,78 @@ This project is kinda focused on Android, but technically you can use it on web 
 
 ## Install
 
+### Expo
+
+Let Expo select the native dependency versions that match the app's SDK:
+
 ```sh
-bun add oh-my-tabs \
-  @react-native-masked-view/masked-view \
-  react-native-gesture-handler \
-  react-native-reanimated \
-  react-native-svg
+bun add react-native-jelly-tabs
+bunx expo install @react-native-masked-view/masked-view react-native-gesture-handler react-native-reanimated react-native-svg
 ```
 
-The package expects `react-native-gesture-handler` and `react-native-reanimated` to be configured in the consuming app.
+If Expo selects Reanimated 4, also run `bunx expo install react-native-worklets`. Do not install `react-native-worklets` with Reanimated 3. This distinction matters: Reanimated 4 requires Worklets and the New Architecture, while Reanimated 3 is the compatible branch for the Legacy Architecture.
+
+### Bare React Native
+
+Install the version of each native dependency that supports your app's exact React Native version and architecture. There is no single Reanimated version that is correct for every React Native release, so Jelly Tabs deliberately does not recommend an arbitrary fixed version.
+
+1. Install `react-native-jelly-tabs`, Masked View, and SVG with your package manager.
+2. Select Reanimated from the official [Reanimated compatibility table](https://docs.swmansion.com/react-native-reanimated/docs/guides/compatibility/). Use its linked 3.x table for the Legacy Architecture.
+3. Select Gesture Handler from its official [React Native support table](https://github.com/software-mansion/react-native-gesture-handler#react-native-support).
+4. For Reanimated 4, install the matching `react-native-worklets` version shown in the Reanimated table. For Reanimated 3, do not install Worklets.
+
+```sh
+bun add react-native-jelly-tabs @react-native-masked-view/masked-view react-native-svg
+```
+
+Jelly Tabs itself supports React Native `>=0.76`, Gesture Handler `>=2.25 <4`, and Reanimated `>=3.16 <5`. Those ranges describe the APIs used by this library; the selected native packages must also be mutually compatible with the consuming app's React Native version. In particular, Gesture Handler 3 requires React Native 0.82 or newer.
+
+After installing, follow the official setup for the selected Reanimated major and render the app under `GestureHandlerRootView`. Rebuild the native app whenever these dependencies change.
 
 ## Usage
 
 ```tsx
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
-import { Tabs, type TabsItem } from "oh-my-tabs";
+import {
+    Tabs,
+    type TabsIcon,
+    type TabsItem,
+} from "react-native-jelly-tabs";
 import { View } from "react-native";
+
+const HomeIcon: TabsIcon = ({ color, isSelected, size }) => (
+    <MaterialIcons
+        color={color}
+        name="home"
+        size={isSelected ? size + 2 : size}
+    />
+);
 
 const items: TabsItem[] = [
     {
         key: "home",
         label: "Home",
-        icon: <MaterialIcons name="home" size={28} />,
+        icon: HomeIcon,
     },
     {
         key: "settings",
         label: "Settings",
-        icon: <MaterialIcons name="settings" size={28} />,
+        icon: ({ color, size }) => (
+            <MaterialIcons color={color} name="settings" size={size} />
+        ),
     },
 ];
 
-export function BottomTabs() {
+export function BottomTabs({
+    onNavigate,
+}: {
+    onNavigate: (key: string) => void;
+}) {
     return (
         <View style={{ height: 68, width: "100%" }}>
             <Tabs
                 items={items}
+                onTabChange={({ item }) => onNavigate(item.key)}
                 colors={{
                     surface: "#22211F",
                     selectedSurface: "#F2EEE7",
@@ -68,6 +105,10 @@ export function BottomTabs() {
     );
 }
 ```
+
+Each item's `icon` is a render function. It receives the resolved `color`, `size`, `opacity`, full `colors` palette, `isSelected`, and `isMasked`, so an icon can use a different glyph or structure for the selected layer instead of relying on element cloning.
+
+`onTabChange` runs on the JavaScript thread after the gesture finishes and the selected tab actually changes. Its event contains both `index` and the original `item`; tapping the already selected tab does not emit it.
 
 `colors` accepts solid React Native color strings for the track, selected pill, active content, and inactive content. Partial color objects fall back to the built-in palette.
 

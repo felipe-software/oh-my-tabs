@@ -1,5 +1,10 @@
-export { Tabs, type TabsItem, type TabsProps } from "./components/tabs";
-export { type TabsIconProps } from "./components/tab-item";
+export {
+    Tabs,
+    type TabsChangeEvent,
+    type TabsItem,
+    type TabsProps,
+} from "./components/tabs";
+export { type TabsIcon, type TabsIconProps } from "./components/tab-item";
 export {
     PillMaskedView,
     type PillMaskedViewProps,

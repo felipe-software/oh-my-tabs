@@ -1,0 +1,102 @@
+name: "Version Bump"
+
+on:
+    workflow_call:
+        inputs:
+            dry_run:
+                description: Run semantic-release without publishing
+                required: false
+                default: false
+                type: boolean
+        secrets:
+            SEMANTIC_RELEASE_GH_TOKEN:
+                required: true
+        outputs:
+            released:
+                description: Whether a new release was created
+                value: ${{ jobs.bump.outputs.released }}
+            version:
+                description: The latest release version after the workflow finishes
+                value: ${{ jobs.bump.outputs.version }}
+    workflow_dispatch:
+        inputs:
+            dry_run:
+                description: Run semantic-release without publishing
+                required: false
+                default: false
+                type: boolean
+
+permissions:
+    contents: write
+
+concurrency:
+    group: bump-version-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    bump:
+        runs-on: ubuntu-latest
+        outputs:
+            released: ${{ steps.outputs.outputs.released }}
+            version: ${{ steps.outputs.outputs.version }}
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: 1.3.14
+
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            - name: Read current release version
+              id: current-release
+              run: |
+                  set -euo pipefail
+
+                  tag="$(git tag --merged HEAD --list 'v[0-9]*' --sort=-version:refname | sed -n '1p')"
+                  echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+            - name: Run semantic-release
+              env:
+                  GH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
+              run: |
+                  if [ "${{ inputs.dry_run }}" = "true" ]; then
+                    bun run release:dry-run
+                  else
+                    bun run release
+                  fi
+
+            - name: Read final release version
+              id: final-release
+              run: |
+                  set -euo pipefail
+
+                  tag="$(git tag --merged HEAD --list 'v[0-9]*' --sort=-version:refname | sed -n '1p')"
+                  echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+            - name: Publish workflow outputs
+              id: outputs
+              env:
+                  INITIAL_VERSION: ${{ steps.current-release.outputs.version }}
+                  FINAL_VERSION: ${{ steps.final-release.outputs.version }}
+              run: |
+                  if [ "${INITIAL_VERSION}" != "${FINAL_VERSION}" ]; then
+                    released=true
+                  else
+                    released=false
+                  fi
+
+                  echo "released=${released}" >> "$GITHUB_OUTPUT"
+                  echo "version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
