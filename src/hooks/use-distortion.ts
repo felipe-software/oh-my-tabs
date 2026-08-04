@@ -8,7 +8,10 @@ import {
     withSpring,
 } from "react-native-reanimated";
 
-export const useDistortion = (displayScale = 1) => {
+export const useDistortion = (
+    displayScale = 1,
+    touchFeedbackRadius = 0,
+) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const trackHeight = TABBAR_LAYOUT.trackHeight * geometryScale;
     const distanceForMaxDistortion =
@@ -20,17 +23,24 @@ export const useDistortion = (displayScale = 1) => {
     const dragOriginY = useSharedValue(0);
     const scaleX = useSharedValue(1);
     const pressedScale = useSharedValue(1);
+    const touchFeedbackOpacity = useSharedValue(0);
 
     const pointerInitialLocalX = useSharedValue(0);
     const pointerInitialAbsoluteX = useSharedValue(0);
+    const pointerLocalY = useSharedValue(trackHeight / 2);
     const transformOriginX = useSharedValue(0);
 
-    const begin = (localX: number, absoluteX: number) => {
+    const begin = (
+        localX: number,
+        localY: number,
+        absoluteX: number,
+    ) => {
         "worklet";
 
         cancelAnimation(translateY);
         cancelAnimation(scaleX);
         cancelAnimation(pressedScale);
+        cancelAnimation(touchFeedbackOpacity);
 
         dragOriginY.value = translateY.value;
         pressedScale.value = withSpring(
@@ -39,7 +49,11 @@ export const useDistortion = (displayScale = 1) => {
         );
         pointerInitialLocalX.value = localX;
         pointerInitialAbsoluteX.value = absoluteX;
+        // Keep the glow in tabbar-local coordinates so the parent transform
+        // moves and distorts it together with the surface.
+        pointerLocalY.value = clamp(localY, 0, trackHeight);
         transformOriginX.value = clamp(localX, 0, trackWidth.value);
+        touchFeedbackOpacity.value = withSpring(1, DISTORTION.spring);
     };
 
     const update = (verticalTranslation: number, absoluteX: number) => {
@@ -73,6 +87,10 @@ export const useDistortion = (displayScale = 1) => {
         translateY.value = withSpring(0, DISTORTION.spring);
         scaleX.value = withSpring(1, DISTORTION.spring);
         pressedScale.value = withSpring(1, DISTORTION.spring);
+        touchFeedbackOpacity.value = withSpring(
+            0,
+            DISTORTION.spring,
+        );
     };
 
     const setTrackWidth = (width: number) => {
@@ -96,12 +114,39 @@ export const useDistortion = (displayScale = 1) => {
         transform: [{ scale: pressedScale.value }],
     }));
 
+    const getTouchFeedbackStyle = () => {
+        "worklet";
+
+        return {
+            opacity: touchFeedbackOpacity.value,
+            transform: [
+                {
+                    translateX:
+                        transformOriginX.value - touchFeedbackRadius,
+                },
+                {
+                    translateY:
+                        pointerLocalY.value - touchFeedbackRadius,
+                },
+            ],
+        };
+    };
+
+    const touchFeedbackStyle = useAnimatedStyle(
+        getTouchFeedbackStyle,
+    );
+    const selectedTouchFeedbackStyle = useAnimatedStyle(
+        getTouchFeedbackStyle,
+    );
+
     return {
         begin,
         end,
         pressedStyle,
+        selectedTouchFeedbackStyle,
         setTrackWidth,
         tabbarStyle,
+        touchFeedbackStyle,
         update,
     };
 };

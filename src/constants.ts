@@ -9,6 +9,20 @@ export const TABBAR_LAYOUT = {
     trackInset: 4,
 } as const;
 
+export interface TabBarColors {
+    activeContent: string;
+    inactiveContent: string;
+    selectedSurface: string;
+    surface: string;
+}
+
+export const DEFAULT_TAB_BAR_COLORS: TabBarColors = {
+    activeContent: "#11100f",
+    inactiveContent: "#b8b4ad",
+    selectedSurface: "#f2eee7",
+    surface: "#22211f",
+};
+
 export const PILL_JELLY = {
     pressedScale: 1.3,
     snapOnPointerDown: true,
@@ -28,6 +42,12 @@ export const PILL_JELLY = {
 
 export const DISTORTION = {
     pressedScale: 1.025,
+    touchFeedback: {
+        middleOpacityRatio: 0.43,
+        opacity: 0.15,
+        radius: 150,
+        scale: 2,
+    },
     spring: {
         damping: 18,
         mass: 0.9,

@@ -22,17 +22,21 @@ export const usePillJelly = (
     tabCount: number,
     recording = false,
     displayScale = 1,
+    touchFeedbackRadius = 0,
 ) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const trackInset = TABBAR_LAYOUT.trackInset * geometryScale;
+    const trackHeight = TABBAR_LAYOUT.trackHeight * geometryScale;
     const {
         begin: beginTabbarInteraction,
         end: endTabbarInteraction,
         pressedStyle,
+        selectedTouchFeedbackStyle,
         setTrackWidth: setDistortionTrackWidth,
         tabbarStyle,
+        touchFeedbackStyle,
         update: updateDistortion,
-    } = useDistortion(geometryScale);
+    } = useDistortion(geometryScale, touchFeedbackRadius);
     const trackWidth = useSharedValue(0);
     const value = useSharedValue(0);
     const valueVelocity = useSharedValue(0);
@@ -100,15 +104,13 @@ export const usePillJelly = (
         );
     });
 
-    const surfaceStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: panelOffset.value }],
-    }));
-
     const panelStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: panelOffset.value }],
     }));
 
-    const pillMaskStyle = useAnimatedStyle(() => {
+    const getPillMaskStyle = () => {
+        "worklet";
+
         const tabWidth = getTabWidth(
             trackWidth.value,
             trackInset,
@@ -126,7 +128,12 @@ export const usePillJelly = (
                 { scaleY: baseScaleY.value * (1 - scaleYCorrection) },
             ],
         };
-    });
+    };
+
+    const pillMaskStyle = useAnimatedStyle(getPillMaskStyle);
+    const activePillMaskStyle = useAnimatedStyle(
+        getPillMaskStyle,
+    );
 
     const activeItemStyle = useAnimatedStyle(() => {
         const scale = 1 + 0.2 * pressProgress.value;
@@ -172,11 +179,14 @@ export const usePillJelly = (
             }
 
             const localX = recording ? firstTouch.y : firstTouch.x;
+            const localY = recording
+                ? trackHeight / 2
+                : firstTouch.y;
             const absoluteX = recording
                 ? firstTouch.absoluteY
                 : firstTouch.absoluteX;
 
-            beginTabbarInteraction(localX, absoluteX);
+            beginTabbarInteraction(localX, localY, absoluteX);
             downX.value = localX;
             movedDistance.value = 0;
 
@@ -247,12 +257,14 @@ export const usePillJelly = (
 
     return {
         activeItemStyle,
+        activePillMaskStyle,
         gesture,
         panelStyle,
         pillMaskStyle,
         pressedStyle,
+        selectedTouchFeedbackStyle,
         setTrackWidth,
-        surfaceStyle,
         tabbarStyle,
+        touchFeedbackStyle,
     };
 };

@@ -4,21 +4,25 @@ import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import Animated, { AnimatedStyle } from "react-native-reanimated";
 
 export interface TabItemProps {
+    activeColor?: string;
     displayScale?: number;
     icon: ReactElement;
+    inactiveColor?: string;
     text: string;
     isActive?: boolean;
     animatedStyle?: StyleProp<AnimatedStyle<ViewStyle>>;
 }
 
 export const TabItem = ({
+    activeColor = "#000000",
     displayScale = 1,
     icon,
+    inactiveColor = "#afafaf",
     text,
     isActive = false,
     animatedStyle,
 }: TabItemProps) => {
-    const color = isActive ? "#000000" : "#afafaf";
+    const color = isActive ? activeColor : inactiveColor;
 
     return (
         <Animated.View
