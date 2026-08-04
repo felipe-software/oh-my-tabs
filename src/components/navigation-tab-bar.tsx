@@ -1,7 +1,4 @@
-import {
-    DEFAULT_TAB_BAR_COLORS,
-    resolveTabBarConfig,
-} from "../constants";
+import { DEFAULT_TAB_BAR_COLORS, resolveTabBarConfig } from "../constants";
 import type {
     JellyNavigationOptions,
     JellyTabBarProps,
@@ -10,19 +7,11 @@ import type {
 } from "../types";
 import { JellyTabBarHeadless } from "./tabs";
 import { useCallback, useMemo } from "react";
-import {
-    type StyleProp,
-    StyleSheet,
-    View,
-    type ViewStyle,
-} from "react-native";
+import { type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
 
 const EmptyIcon: TabsIcon = () => null;
 
-const resolveLabel = (
-    routeName: string,
-    options: JellyNavigationOptions,
-) => {
+const resolveLabel = (routeName: string, options: JellyNavigationOptions) => {
     if (options.tabBarShowLabel === false) {
         return "";
     }
@@ -83,10 +72,15 @@ export const JellyTabBar = ({
             visibleRoutes.map((route) => {
                 const options = descriptors[route.key]?.options ?? {};
                 return {
+                    accessibilityLabel: options.tabBarAccessibilityLabel,
                     activeIcon: resolveIcon(options, true),
+                    badge: options.tabBarBadge,
+                    badgeStyle: options.tabBarBadgeStyle,
                     inactiveIcon: resolveIcon(options, false),
                     key: route.key,
                     label: resolveLabel(route.name, options),
+                    labelStyle: options.tabBarLabelStyle,
+                    testID: options.tabBarButtonTestID,
                 };
             }),
         [descriptors, visibleRoutes],
@@ -145,6 +139,21 @@ export const JellyTabBar = ({
         [focusedRoute?.key, navigation, state.key, visibleRoutes],
     );
 
+    const handleTabLongPress = useCallback(
+        ({ index }: { index: number }) => {
+            const route = visibleRoutes[index];
+            if (!route) {
+                return;
+            }
+
+            navigation.emit({
+                target: route.key,
+                type: "tabLongPress",
+            });
+        },
+        [navigation, visibleRoutes],
+    );
+
     return (
         <View
             style={[
@@ -159,12 +168,7 @@ export const JellyTabBar = ({
                 containerStyle,
             ]}
         >
-            <View
-                style={[
-                    styles.bar,
-                    { height: trackHeight, maxWidth },
-                ]}
-            >
+            <View style={[styles.bar, { height: trackHeight, maxWidth }]}>
                 <JellyTabBarHeadless
                     {...headlessProps}
                     backdrop={backdrop ?? focusedOptions?.tabBarBackground?.()}
@@ -172,6 +176,7 @@ export const JellyTabBar = ({
                     config={config}
                     displayScale={displayScale}
                     items={items}
+                    onTabLongPress={handleTabLongPress}
                     onTabPress={handleTabPress}
                     selectedIndex={selectedIndex}
                 />

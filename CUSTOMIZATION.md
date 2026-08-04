@@ -10,6 +10,7 @@ Every adjustable parameter of `<JellyTabBarHeadless />`, taken straight from the
 | `maxWidth` | `DimensionValue` | `400` | Maximum track width. The bar stays centered inside wider parents. |
 | `selectedIndex` | `number \| null` | uncontrolled | Controlled selected index. External changes animate the pill to the matching item. Pass `null` or a negative index to render no selected pill. |
 | `onTabPress` | `(event: TabsChangeEvent) => boolean \| void` | — | Runs after every completed tap or drag, including the already selected tab. Return `false` to reject the change and restore the current selection. |
+| `onTabLongPress` | `(event: TabsChangeEvent) => void` | — | Runs when a tab is held, including the `longpress` accessibility action. |
 | `onTabChange` | `(event: TabsChangeEvent) => void` | — | Runs after an accepted gesture changes the selected tab. Rejected presses and taps on the already selected tab do not emit it. |
 | `colors` | `Partial<TabBarColors>` | built-in palette | Solid color strings for each layer. See [Colors](#colors). |
 | `opacity` | `Partial<TabBarOpacity>` | all `1` | Per-layer opacity, clamped `0`–`1`. See [Opacity](#opacity). |
@@ -33,18 +34,25 @@ Pass `JellyTabBar` directly to the navigator's `tabBar` callback. The navigator 
 <Tabs tabBar={(props) => <JellyTabBar {...props} />} />
 ```
 
-It supports Expo Router's `href: null` convention for hidden tabs, plus `title`, string `tabBarLabel`, `tabBarIcon`, `tabBarShowLabel`, active/inactive tint and background colors, `tabBarBackground` and `tabBarStyle`. The centered bar has `maxWidth={400}` by default; change it with the `maxWidth` prop. Pass `floating` to absolutely position the bar over the screen, and use `containerStyle` for additional wrapper overrides. Function-valued `tabBarLabel`, badges, custom tab buttons and long-press handling are not currently rendered by the Jelly layout.
+It supports Expo Router's `href: null` convention for hidden tabs, plus `title`, string `tabBarLabel`, `tabBarLabelStyle`, `tabBarIcon`, `tabBarShowLabel`, `tabBarBadge`, `tabBarBadgeStyle`, `tabBarAccessibilityLabel`, `tabBarButtonTestID`, active/inactive tint and background colors, `tabBarBackground`, `tabBarStyle`, `tabPress` and `tabLongPress`. The centered bar has `maxWidth={400}` by default; change it with the `maxWidth` prop. Pass `floating` to absolutely position the bar over the screen, and use `containerStyle` for additional wrapper overrides. Function-valued `tabBarLabel` and custom tab buttons are not currently rendered by the Jelly layout.
 
 ### `TabsItem`
 
 ```ts
 interface TabsItem {
+    accessibilityLabel?: string;
     key: string;
     label: string;
+    labelStyle?: StyleProp<TextStyle>;
     activeIcon: TabsIcon; // shown through the pill mask
     inactiveIcon: TabsIcon; // shown in the track
+    badge?: number | string;
+    badgeStyle?: StyleProp<TextStyle>;
+    testID?: string;
 }
 ```
+
+Labels are limited to one line and truncate with a trailing ellipsis. Each item is exposed to accessibility services as a tab with its label and selected state; the semantic layer supports activate and long-press actions without replacing the continuous drag gesture.
 
 ### `TabsChangeEvent`
 

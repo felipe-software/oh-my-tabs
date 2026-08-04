@@ -20,6 +20,8 @@ Demo at: https://jelly.felipe.software/
 - Smooth jelly snapping, dragging and press interactions powered by Reanimated and Gesture Handler.
 - Navigation-aware selection that follows deep links, hardware back and programmatic navigation.
 - Expo Router hidden tabs through `href: null`, including hidden focused routes with no false selection.
+- Per-tab accessibility semantics for VoiceOver and TalkBack, including selected state and activation actions.
+- Navigation badges, test IDs, accessibility labels, label styles and `tabLongPress` events.
 - Headless component for custom routers and fully controlled tab state.
 - Custom icons, colors, opacity, sizing, springs, distortion, backdrops and touch feedback.
 - Compatible with Reanimated 3–4 and Gesture Handler 2–3 within the supported React Native ranges below.
@@ -105,7 +107,7 @@ export default function TabLayout() {
 }
 ```
 
-`JellyTabBar` is compatible with the `tabBar` prop from Expo Router's JavaScript tabs and React Navigation's bottom tabs. It reads the screens, labels, icons and selected index from the navigator, respects Expo Router's `href: null` convention for hidden tabs, emits the standard `tabPress` event and keeps the pill synchronized with deep links, hardware back and programmatic navigation. When a hidden route is focused, the visible bar renders without a selected pill.
+`JellyTabBar` is compatible with the `tabBar` prop from Expo Router's JavaScript tabs and React Navigation's bottom tabs. It reads screens, labels, label styles, icons, badges, accessibility labels, test IDs and the selected index from the navigator. It respects Expo Router's `href: null` convention, emits the standard `tabPress` and `tabLongPress` events, and keeps the pill synchronized with deep links, hardware back and programmatic navigation. When a hidden route is focused, the visible bar renders without a selected pill.
 
 Both components have a `maxWidth` of `400` by default and stay centered on wider screens. Override it with a number or dimension value, for example `<JellyTabBar {...props} maxWidth={560} />` or `maxWidth="100%"`.
 
@@ -123,7 +125,7 @@ Use `JellyTabBarHeadless` when you want the animated component without any navig
 />
 ```
 
-Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette). `selectedIndex` is optional; omit it for uncontrolled usage, or pass `null`/a negative index to render no selected pill. Return `false` from `onTabPress` to reject a change and restore the current selection; rejected presses do not emit `onTabChange`. The old `JellyTabs` export remains as a deprecated alias for `JellyTabBarHeadless`.
+Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette), plus optional badge, label style, accessibility label and test ID fields. Labels stay on one line and truncate with an ellipsis. `selectedIndex` is optional; omit it for uncontrolled usage, or pass `null`/a negative index to render no selected pill. Return `false` from `onTabPress` to reject a change and restore the current selection; rejected presses do not emit `onTabChange`. Use `onTabLongPress` for hold gestures and accessibility long-press actions. The old `JellyTabs` export remains as a deprecated alias for `JellyTabBarHeadless`.
 
 `JellyTabBarHeadless` adds no safe-area inset of its own. Give it a wrapper whose height matches `config.layout.trackHeight` (default `64`) times `displayScale`. The navigation-aware `JellyTabBar` handles the navigator-provided safe-area insets automatically.
 

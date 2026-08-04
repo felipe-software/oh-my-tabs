@@ -43,6 +43,7 @@ export const usePillJelly = (
     controlledSelectedIndex?: number | null,
     onTabChange?: (index: number) => void,
     onTabPress?: (index: number) => boolean | void,
+    onTabLongPress?: (index: number) => void,
 ) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const { layout, pillJelly } = config;
@@ -278,6 +279,23 @@ export const usePillJelly = (
         ],
     );
 
+    const activateTab = useCallback(
+        (index: number) => {
+            if (tabCount === 0) {
+                return;
+            }
+
+            const nextIndex = Math.min(
+                Math.max(index, 0),
+                getMaxTabIndex(tabCount),
+            );
+            targetValue.value = nextIndex;
+            releasePending.value = 1;
+            confirmTabPressOnJS(nextIndex);
+        },
+        [confirmTabPressOnJS, releasePending, tabCount, targetValue],
+    );
+
     const finishGesture = () => {
         "worklet";
 
@@ -334,7 +352,7 @@ export const usePillJelly = (
         rawPanelOffsetVelocity.value = 0;
     };
 
-    const gesture = Gesture.Pan()
+    const panGesture = Gesture.Pan()
         .minDistance(0)
         .maxPointers(1)
         .shouldCancelWhenOutside(false)
@@ -397,6 +415,37 @@ export const usePillJelly = (
         })
         .onFinalize(finishGesture);
 
+    const longPressGesture = Gesture.LongPress()
+        .enabled(tabCount > 0 && Boolean(onTabLongPress))
+        .minDuration(500)
+        .maxDistance(10)
+        .onStart((event) => {
+            if (!onTabLongPress) {
+                return;
+            }
+
+            const tabWidth = getTabWidth(
+                trackWidth.value,
+                trackInset,
+                tabCount,
+            );
+            if (tabWidth <= 0) {
+                return;
+            }
+
+            const localX = recording ? event.y : event.x;
+            const index = clamp(
+                Math.floor((localX - trackInset) / tabWidth),
+                0,
+                getMaxTabIndex(tabCount),
+            );
+            runOnJS(onTabLongPress)(index);
+        });
+
+    const gesture = onTabLongPress
+        ? Gesture.Simultaneous(panGesture, longPressGesture)
+        : panGesture;
+
     const setTrackWidth = (width: number) => {
         trackWidth.value = width;
         setDistortionTrackWidth(width);
@@ -409,6 +458,7 @@ export const usePillJelly = (
     };
 
     return {
+        activateTab,
         activeItemStyle,
         activePillClipStyle,
         activePillMaskStyle,
