@@ -72,7 +72,7 @@
         "react-dom": "19.2.3",
         "react-native": "0.86.2",
         "react-native-gesture-handler": "~2.32.0",
-        "react-native-jelly-tabs": "file:./vendor/react-native-jelly-tabs-0.0.0-semantically-released.tgz",
+        "react-native-jelly-tabs": "link:react-native-jelly-tabs",
         "react-native-reanimated": "4.5.1",
         "react-native-safe-area-context": "~5.7.0",
         "react-native-svg": "15.15.4",
@@ -2102,7 +2102,7 @@
 
     "react-native-jelly-tabs-example-simple/react-native-gesture-handler": ["react-native-gesture-handler@2.32.0", "", { "dependencies": { "@egjs/hammerjs": "^2.0.17", "@types/react-test-renderer": "^19.1.0", "hoist-non-react-statics": "^3.3.0", "invariant": "^2.2.4" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-uYIMOKlKENORq2SABE+jIjbPU+h5I/sQKcq2v16zRq848nwEp1fWRVwML4QWqijc8UcXJC25o54S8GQd4Mf2OA=="],
 
-    "react-native-jelly-tabs-example-simple/react-native-jelly-tabs": ["react-native-jelly-tabs@./vendor/react-native-jelly-tabs-0.0.0-semantically-released.tgz", { "peerDependencies": { "@react-native-masked-view/masked-view": ">=0.3.0", "react": ">=18.0.0", "react-native": ">=0.76.0", "react-native-gesture-handler": ">=2.25.0 <4.0.0", "react-native-reanimated": ">=3.16.0 <5.0.0", "react-native-svg": ">=15.0.0" } }, "sha512-Y2zkHZK6J7Tb84nHACkHLOsL3nuq+SUppuBcGsaR6lVhullS47PRQ/DHhrBBcWg4PNnrzl/X4J6qkSmNJIY/ZQ=="],
+    "react-native-jelly-tabs-example-simple/react-native-jelly-tabs": ["react-native-jelly-tabs@link:react-native-jelly-tabs", {}],
 
     "react-native-web/@react-native/normalize-colors": ["@react-native/normalize-colors@0.74.89", "", {}, "sha512-qoMMXddVKVhZ8PA1AbUCk83trpd6N+1nF2A6k1i6LsQObyS92fELuk8kU/lQs6M7BsMHwqyLCpQJ1uFgNvIQXg=="],
 

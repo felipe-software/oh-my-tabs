@@ -17,7 +17,7 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.2",
     "react-native-gesture-handler": "~2.32.0",
-    "react-native-jelly-tabs": "file:./vendor/react-native-jelly-tabs-0.0.0-semantically-released.tgz",
+    "react-native-jelly-tabs": "link:react-native-jelly-tabs",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",

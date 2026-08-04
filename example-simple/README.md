@@ -4,35 +4,31 @@ Aplicativo Expo mínimo com três páginas (`Início`, `Buscar` e `Perfil`) cont
 
 ## Executar
 
-Instale e execute sempre a partir da raiz do repositório:
+Este exemplo consome a biblioteca pelo **build (`dist/`)** através de um symlink do Bun (`bun link`) — sem cópia da raiz e sem tarball. Na primeira vez, a partir da **raiz do repositório**:
 
 ```sh
 bun install
-bun run example-simple
+bun run build      # gera dist/
+bun link           # registra react-native-jelly-tabs para o link global do Bun
 ```
 
-Para abrir diretamente em uma plataforma:
+Depois, dentro de `example-simple/`:
 
 ```sh
-bun run example-simple:android
-bun run example-simple:ios
-bun run example-simple:web
+bun install        # resolve o "link:react-native-jelly-tabs" (symlink → dist buildado)
+bun run start      # ou: bun run android / ios / web
 ```
 
-## Regra para não duplicar a biblioteca
+## Por que não duplica a biblioteca
 
-`example-simple` faz parte do workspace da raiz e consome o tarball em `vendor/`. O tarball contém somente os arquivos publicáveis da biblioteca (`dist/` e `src/`), nunca a raiz inteira com seus exemplos e `node_modules`.
+O `package.json` referencia a lib como `"react-native-jelly-tabs": "link:react-native-jelly-tabs"`. O Bun cria um **symlink** para a raiz do repositório em vez de copiar, então o alvo pesa só os arquivos do pacote (o `file:..` copiaria a raiz inteira — `example/`, `references/` — e inflava o store em GBs).
 
-Não crie um lockfile aqui e não execute outro gerenciador de pacotes dentro desta pasta. O único `bun install` deve ser feito na raiz.
-
-Depois de alterar a biblioteca, regenere o pacote local:
+Como o `package.json` da raiz não expõe mais o campo `react-native: ./src`, a resolução cai no `dist/` (o artefato publicado), igual a um consumidor real do npm. Ao alterar a lib, rebuilde:
 
 ```sh
-bun run build
-bun run example-simple:pack
-bun install
+bun run build      # na raiz — ou `bun run dev` para watch; o symlink reflete na hora
 ```
 
-O exemplo também não importa nada de `src/` diretamente: ele consome apenas o nome público do pacote.
+O exemplo não importa nada de `src/` diretamente: consome apenas o nome público do pacote.
 
 As lacunas encontradas durante a implementação estão em [DOCS-NOTES.md](./DOCS-NOTES.md).

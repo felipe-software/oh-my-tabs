@@ -1,8 +1,8 @@
 # Customization
 
-Every adjustable parameter of `<Tabs />`, taken straight from the exported TypeScript types. All props are optional except `items`; anything you omit falls back to the built-in defaults.
+Every adjustable parameter of `<JellyTabs />`, taken straight from the exported TypeScript types. All props are optional except `items`; anything you omit falls back to the built-in defaults.
 
-## `<Tabs />` props
+## `<JellyTabs />` props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |

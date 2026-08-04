@@ -301,6 +301,8 @@ export const JellyTabs = ({
 const styles = StyleSheet.create({
     pressWrapper: {
         width: "100%",
+        // Stop the label/icon glyphs from being text-selected on web; harmless on native.
+        userSelect: "none",
     },
     track: {
         position: "relative",

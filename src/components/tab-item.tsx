@@ -71,6 +71,7 @@ export const TabItem = ({
                     />
                 </View>
                 <Text
+                    selectable={false}
                     style={[
                         {
                             color,
