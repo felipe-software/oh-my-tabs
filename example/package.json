@@ -29,6 +29,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "build": "expo export --platform web",
     "start": "expo start",
     "start:recording": "EXPO_PUBLIC_RECORDING_MODE=1 expo run:android",
     "android": "expo run:android",
