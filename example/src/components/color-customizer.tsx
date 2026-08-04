@@ -5,7 +5,7 @@ import {
     type TabBarConfig,
     type TabBarLayoutConfig,
     type TabBarOpacity,
-} from "oh-my-tabs";
+} from "react-native-jelly-tabs";
 import Slider from "@react-native-community/slider";
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import { useState, type ReactNode } from "react";
@@ -18,7 +18,7 @@ import {
     View,
 } from "react-native";
 
-const GITHUB_URL = "https://github.com/felipe-software/oh-my-tabs";
+const GITHUB_URL = "https://github.com/felipe-software/react-native-jelly-tabs";
 
 export interface BlurConfig {
     pill: number;
@@ -441,7 +441,7 @@ export const ColorCustomizer = ({
     return (
         <View style={styles.panel}>
             <View style={styles.header}>
-                <Text style={styles.title}>oh-my-tabs</Text>
+                <Text style={styles.title}>react-native-jelly-tabs</Text>
                 <View style={styles.headerActions}>
                     <Pressable
                         accessibilityLabel="Change background image"
@@ -456,7 +456,7 @@ export const ColorCustomizer = ({
                         <Text style={styles.githubButtonText}>Change bg</Text>
                     </Pressable>
                     <Pressable
-                        accessibilityLabel="Open oh-my-tabs on GitHub"
+                        accessibilityLabel="Open react-native-jelly-tabs on GitHub"
                         accessibilityRole="link"
                         onPress={() => Linking.openURL(GITHUB_URL)}
                         style={({ pressed }) => [

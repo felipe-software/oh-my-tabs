@@ -12,7 +12,7 @@ This project is kinda focused on Android, but technically you can use it on web 
 ## Install
 
 ```sh
-bun add oh-my-tabs \
+bun add react-native-jelly-tabs \
   @react-native-masked-view/masked-view \
   react-native-gesture-handler \
   react-native-reanimated \
@@ -25,7 +25,7 @@ The package expects `react-native-gesture-handler` and `react-native-reanimated`
 
 ```tsx
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
-import { Tabs, type TabsItem } from "oh-my-tabs";
+import { Tabs, type TabsItem } from "react-native-jelly-tabs";
 import { View } from "react-native";
 
 const items: TabsItem[] = [

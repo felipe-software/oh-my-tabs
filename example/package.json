@@ -1,5 +1,5 @@
 {
-  "name": "oh-my-tabs-example",
+  "name": "react-native-jelly-tabs-example",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "private": true,
@@ -14,7 +14,7 @@
     "expo-router": "~57.0.9",
     "expo-splash-screen": "~57.0.5",
     "expo-status-bar": "~57.0.1",
-    "oh-my-tabs": "file:..",
+    "react-native-jelly-tabs": "file:..",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.2",

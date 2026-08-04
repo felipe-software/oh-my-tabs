@@ -1,6 +1,6 @@
 {
-    "name": "oh-my-tabs",
-    "version": "1.0.0",
+    "name": "react-native-jelly-tabs",
+    "version": "0.0.0-semantically-released",
     "description": "A playful, jelly-like animated tab bar for React Native.",
     "type": "module",
     "main": "./dist/index.cjs",
@@ -25,6 +25,14 @@
         "dist",
         "src"
     ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/felipe-software/react-native-jelly-tabs.git"
+    },
+    "bugs": {
+        "url": "https://github.com/felipe-software/react-native-jelly-tabs/issues"
+    },
+    "homepage": "https://github.com/felipe-software/react-native-jelly-tabs#readme",
     "sideEffects": false,
     "scripts": {
         "build": "tsdown",
@@ -35,6 +43,8 @@
         "example:ios": "bun run --cwd example ios",
         "example:web": "bun run --cwd example web",
         "prepublishOnly": "bun run build",
+        "release": "semantic-release",
+        "release:dry-run": "semantic-release --dry-run",
         "era": "cd example && bunx expo run android",
         "epc": "cd example && bunx expo prebuild --clean"
     },
@@ -47,6 +57,10 @@
         "react-native-svg": ">=15.0.0"
     },
     "devDependencies": {
+        "@semantic-release/commit-analyzer": "^13.0.1",
+        "@semantic-release/github": "^12.0.9",
+        "@semantic-release/npm": "^13.1.5",
+        "@semantic-release/release-notes-generator": "^14.1.1",
         "@react-native-masked-view/masked-view": "^0.3.2",
         "@types/react": "~19.2.2",
         "react": "19.2.3",
@@ -54,6 +68,8 @@
         "react-native-gesture-handler": "^3.1.0",
         "react-native-reanimated": "4.5.1",
         "react-native-svg": "15.15.4",
+        "conventional-changelog-conventionalcommits": "^10.2.1",
+        "semantic-release": "^25.0.5",
         "tsdown": "^0.22.14",
         "typescript": "~6.0.3"
     },

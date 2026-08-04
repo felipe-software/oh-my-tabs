@@ -1,0 +1,16 @@
+name: "Release Pipeline"
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    version-bump:
+        permissions:
+            contents: write
+        uses: ./.github/workflows/version-bump.yaml
+        with:
+            dry_run: false
+        secrets:
+            SEMANTIC_RELEASE_GH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}

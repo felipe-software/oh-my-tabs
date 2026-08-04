@@ -16,7 +16,7 @@ import {
     type TabBarColors,
     type TabBarOpacity,
     type TabsItem,
-} from "oh-my-tabs";
+} from "react-native-jelly-tabs";
 import { useRef, useState } from "react";
 import {
     Dimensions,
