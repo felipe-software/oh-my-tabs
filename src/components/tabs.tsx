@@ -26,6 +26,7 @@ export const Tabs = ({
         pillMaskStyle,
         setTrackWidth,
         surfaceStyle,
+        tabbarStyle,
     } = usePillJelly(recording, displayScale);
 
     const maskOverscanX = MASK_OVERSCAN_X * displayScale;
@@ -33,7 +34,7 @@ export const Tabs = ({
     const trackInset = 4 * displayScale;
     const trackHeight = 64 * displayScale;
     const itemHeight = 56 * displayScale;
-    const iconSize = 30 * displayScale;
+    const iconSize = 28 * displayScale;
 
     const tabs = [
         <TabItem
@@ -60,11 +61,15 @@ export const Tabs = ({
 
     return (
         <GestureDetector gesture={gesture}>
-            <View
+            <Animated.View
                 collapsable={false}
                 pointerEvents="box-only"
                 testID="tabs-drag-surface"
-                style={[styles.track, { height: trackHeight }]}
+                style={[
+                    styles.track,
+                    { height: trackHeight },
+                    tabbarStyle,
+                ]}
                 onLayout={(event) =>
                     setTrackWidth(event.nativeEvent.layout.width)
                 }
@@ -140,7 +145,7 @@ export const Tabs = ({
                         </View>
                     </MaskedView>
                 </Animated.View>
-            </View>
+            </Animated.View>
         </GestureDetector>
     );
 };

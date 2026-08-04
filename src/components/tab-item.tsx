@@ -43,9 +43,9 @@ export const TabItem = ({
                             color,
                             fontSize: 13 * displayScale,
                             fontWeight: isActive ? "700" : "400",
-                            transform: [
-                                { translateY: -4 * displayScale },
-                            ],
+                            // transform: [
+                            //     { translateY: -4 * displayScale },
+                            // ],
                         },
                     ]}
                 >

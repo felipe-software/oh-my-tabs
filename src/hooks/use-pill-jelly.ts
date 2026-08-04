@@ -1,3 +1,4 @@
+import { useTabbarDistortion } from "@/hooks/use-tabbar-distortion";
 import { usePanGesture } from "react-native-gesture-handler";
 import {
     clamp,
@@ -123,9 +124,40 @@ const easeOut = (input: number): number => {
     );
 };
 
+const getHorizontalPanelOffset = (
+    rawOffset: number,
+    trackWidth: number,
+    geometryScale: number,
+): number => {
+    "worklet";
+
+    if (trackWidth <= 0) {
+        return 0;
+    }
+
+    const fraction = clamp(rawOffset / trackWidth, -1, 1);
+    if (fraction === 0) {
+        return 0;
+    }
+
+    return (
+        Math.sign(fraction) *
+        4 *
+        geometryScale *
+        easeOut(Math.abs(fraction))
+    );
+};
+
 export const usePillJelly = (recording = false, displayScale = 1) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const trackInset = TRACK_INSET * geometryScale;
+    const {
+        begin: beginDistortion,
+        end: endDistortion,
+        setTrackWidth: setDistortionTrackWidth,
+        tabbarStyle,
+        update: updateDistortion,
+    } = useTabbarDistortion(geometryScale);
     const trackWidth = useSharedValue(0);
     const value = useSharedValue(0);
     const valueVelocity = useSharedValue(0);
@@ -251,43 +283,16 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
     });
 
     const panelOffset = useDerivedValue(() => {
-        if (trackWidth.value <= 0) {
-            return 0;
-        }
-
-        const fraction = clamp(
-            rawPanelOffset.value / trackWidth.value,
-            -1,
-            1,
-        );
-        if (fraction === 0) {
-            return 0;
-        }
-
-        return (
-            Math.sign(fraction) *
-            4 *
-            geometryScale *
-            easeOut(Math.abs(fraction))
+        return getHorizontalPanelOffset(
+            rawPanelOffset.value,
+            trackWidth.value,
+            geometryScale,
         );
     });
 
-    const surfaceStyle = useAnimatedStyle(() => {
-        const width = trackWidth.value;
-        const scale =
-            width > 0
-                ? 1 +
-                  (16 * geometryScale * pressProgress.value) / width
-                : 1;
-
-        return {
-            transform: [
-                { translateX: panelOffset.value },
-                { scaleX: scale },
-                { scaleY: scale },
-            ],
-        };
-    });
+    const surfaceStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: panelOffset.value }],
+    }));
 
     const panelStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: panelOffset.value }],
@@ -322,6 +327,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
 
         isDragging.value = 0;
         rawPanelOffsetVelocity.value = 0;
+        endDistortion();
 
         const tabWidth =
             (trackWidth.value - trackInset * 2) / TAB_COUNT;
@@ -351,7 +357,13 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
                 return;
             }
 
-            downX.value = recording ? firstTouch.y : firstTouch.x;
+            const localX = recording ? firstTouch.y : firstTouch.x;
+            const absoluteX = recording
+                ? firstTouch.absoluteY
+                : firstTouch.absoluteX;
+
+            beginDistortion(localX, absoluteX);
+            downX.value = localX;
             movedDistance.value = 0;
             dragStartTarget.value = targetValue.value;
             dragStartPanelOffset.value = rawPanelOffset.value;
@@ -368,20 +380,30 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
                 return;
             }
 
-            const translation = recording
+            const horizontalTranslation = recording
                 ? event.translationY
                 : event.translationX;
+            const verticalTranslation = recording
+                ? -event.translationX
+                : event.translationY;
 
             targetValue.value = clamp(
-                dragStartTarget.value + translation / tabWidth,
+                dragStartTarget.value +
+                    horizontalTranslation / tabWidth,
                 0,
                 TAB_COUNT - 1,
             );
+            const absoluteX = recording
+                ? event.absoluteY
+                : event.absoluteX;
+
             rawPanelOffset.value =
-                dragStartPanelOffset.value + translation;
+                dragStartPanelOffset.value + horizontalTranslation;
+            updateDistortion(verticalTranslation, absoluteX);
             movedDistance.value = Math.max(
                 movedDistance.value,
-                Math.abs(translation),
+                Math.abs(horizontalTranslation),
+                Math.abs(verticalTranslation),
             );
         },
         onFinalize: finishGesture,
@@ -389,6 +411,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
 
     const setTrackWidth = (width: number) => {
         trackWidth.value = width;
+        setDistortionTrackWidth(width);
     };
 
     return {
@@ -398,5 +421,6 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
         pillMaskStyle,
         setTrackWidth,
         surfaceStyle,
+        tabbarStyle,
     };
 };
