@@ -38,7 +38,7 @@ const items: TabsItem[] = [
 
 export function BottomTabs() {
     return (
-        <View style={{ height: 64, width: "100%" }}>
+        <View style={{ height: 68, width: "100%" }}>
             <Tabs
                 items={items}
                 colors={{
@@ -47,6 +47,17 @@ export function BottomTabs() {
                     activeContent: "#11100F",
                     inactiveContent: "#B8B4AD",
                 }}
+                opacity={{
+                    surface: 0.78,
+                    selectedSurface: 0.86,
+                }}
+                config={{
+                    layout: { trackHeight: 68 },
+                    pillJelly: { pressedScale: 1.25 },
+                    distortion: {
+                        verticalDrag: { distortion: 0.1 },
+                    },
+                }}
             />
         </View>
     );
@@ -54,6 +65,12 @@ export function BottomTabs() {
 ```
 
 `colors` accepts solid React Native color strings for the track, selected pill, active content, and inactive content. Partial color objects fall back to the built-in palette.
+
+`opacity` controls those same four layers independently and is clamped from `0` to `1`. Opacity is applied to the rendered content rather than the mask, so the animated pill keeps a fully opaque clipping shape.
+
+Every value from `TABBAR_LAYOUT`, `PILL_JELLY`, and `DISTORTION` can be overridden through the deep-partial `config` prop. `resolveTabBarConfig()` is exported when a consumer needs a complete mutable configuration object.
+
+`backdrop` and `selectedBackdrop` accept React nodes rendered below the track and selected-pill color layers. This keeps blur provider-agnostic: the Expo example uses `expo-blur`, while other apps can inject their platform blur component.
 
 The touch feedback color follows `colors.selectedSurface` by default. Set `touchFeedbackColor` to override it independently.
 

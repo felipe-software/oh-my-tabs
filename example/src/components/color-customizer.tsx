@@ -1,360 +1,1177 @@
-import { type TabBarColors } from "oh-my-tabs";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+    type DistortionConfig,
+    type PillJellyConfig,
+    type TabBarColors,
+    type TabBarConfig,
+    type TabBarLayoutConfig,
+    type TabBarOpacity,
+} from "oh-my-tabs";
+import Slider from "@react-native-community/slider";
+import { MaterialIcons } from "@react-native-vector-icons/material-icons";
+import { useState, type ReactNode } from "react";
+import {
+    Linking,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
+
+const GITHUB_URL = "https://github.com/felipe-software/oh-my-tabs";
+
+export interface BlurConfig {
+    pill: number;
+    track: number;
+}
 
 type ColorKey = keyof TabBarColors;
-
-const COLOR_OPTIONS = [
-    "#11100F",
-    "#F2EEE7",
-    "#C96F4A",
-    "#27483B",
-    "#536878",
-    "#E5B55F",
-    "#813C4D",
-    "#B8B4AD",
-];
+type OpacityKey = keyof TabBarOpacity;
+type PanelKey = "palette" | "layout" | "motion" | "touch";
+type LayoutNumberKey = keyof TabBarLayoutConfig;
+type DistortionSpringKey = keyof DistortionConfig["spring"];
+type VerticalDragKey = keyof DistortionConfig["verticalDrag"];
+type TouchFeedbackKey = keyof DistortionConfig["touchFeedback"];
+type JellySpringKey = keyof PillJellyConfig["frameConfig"]["springs"];
+type SpringValueKey = "dampingRatio" | "stiffness";
 
 const COLOR_FIELDS: { key: ColorKey; label: string }[] = [
     { key: "surface", label: "Track" },
-    { key: "selectedSurface", label: "Pill" },
-    { key: "activeContent", label: "Active" },
-    { key: "inactiveContent", label: "Inactive" },
+    { key: "selectedSurface", label: "Selected pill" },
+    { key: "activeContent", label: "Active content" },
+    { key: "inactiveContent", label: "Inactive content" },
 ];
 
-const PRESETS: { colors: TabBarColors; label: string }[] = [
+// Each preset is defined by its pill color — the token people actually
+// reach for. Surfaces stay a neutral dark so the pill does the talking.
+const PALETTES: { colors: TabBarColors; label: string }[] = [
     {
-        label: "Graphite",
+        label: "Blue",
         colors: {
-            activeContent: "#11100F",
-            inactiveContent: "#B8B4AD",
-            selectedSurface: "#F2EEE7",
-            surface: "#22211F",
+            activeContent: "#EFF6FF",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#2563EB",
+            surface: "#18181B",
         },
     },
     {
-        label: "Clay",
+        label: "Indigo",
         colors: {
-            activeContent: "#F8EEE6",
-            inactiveContent: "#DAB4A3",
-            selectedSurface: "#813C4D",
-            surface: "#C96F4A",
+            activeContent: "#EEF2FF",
+            inactiveContent: "#A5B4FC",
+            selectedSurface: "#4F46E5",
+            surface: "#1E1B4B",
         },
     },
     {
-        label: "Moss",
+        label: "Violet",
         colors: {
-            activeContent: "#17241F",
-            inactiveContent: "#B7C6BC",
-            selectedSurface: "#E5B55F",
-            surface: "#27483B",
+            activeContent: "#F5F3FF",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#7C3AED",
+            surface: "#18181B",
         },
     },
     {
-        label: "Paper",
+        label: "Pink",
         colors: {
-            activeContent: "#F2EEE7",
-            inactiveContent: "#625F59",
-            selectedSurface: "#536878",
-            surface: "#F2EEE7",
+            activeContent: "#FDF2F8",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#EC4899",
+            surface: "#18181B",
+        },
+    },
+    {
+        label: "Rose",
+        colors: {
+            activeContent: "#FFF1F2",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#E11D48",
+            surface: "#18181B",
+        },
+    },
+    {
+        label: "Red",
+        colors: {
+            activeContent: "#FEF2F2",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#DC2626",
+            surface: "#18181B",
+        },
+    },
+    {
+        label: "Orange",
+        colors: {
+            activeContent: "#FFF7ED",
+            inactiveContent: "#A8A29E",
+            selectedSurface: "#EA580C",
+            surface: "#1C1917",
+        },
+    },
+    {
+        label: "Amber",
+        colors: {
+            activeContent: "#451A03",
+            inactiveContent: "#A8A29E",
+            selectedSurface: "#F59E0B",
+            surface: "#1C1917",
+        },
+    },
+    {
+        label: "Emerald",
+        colors: {
+            activeContent: "#ECFDF5",
+            inactiveContent: "#A1A1AA",
+            selectedSurface: "#10B981",
+            surface: "#18181B",
+        },
+    },
+    {
+        label: "Teal",
+        colors: {
+            activeContent: "#F0FDFA",
+            inactiveContent: "#94A3B8",
+            selectedSurface: "#14B8A6",
+            surface: "#0F172A",
+        },
+    },
+    {
+        label: "Cyan",
+        colors: {
+            activeContent: "#ECFEFF",
+            inactiveContent: "#94A3B8",
+            selectedSurface: "#06B6D4",
+            surface: "#0F172A",
+        },
+    },
+    {
+        label: "Mono",
+        colors: {
+            activeContent: "#171717",
+            inactiveContent: "#A3A3A3",
+            selectedSurface: "#FAFAFA",
+            surface: "#171717",
         },
     },
 ];
+
+// Opacity applied whenever a preset is picked (and used as the default look).
+// Values are the previous demo opacities bumped ~30% toward fully opaque.
+export const THEME_OPACITY: TabBarOpacity = {
+    activeContent: 1,
+    inactiveContent: 1,
+    selectedSurface: 1,
+    surface: 0.78,
+};
 
 interface ColorCustomizerProps {
+    blur: BlurConfig;
     colors: TabBarColors;
+    config: TabBarConfig;
+    onBlurChange: (blur: BlurConfig) => void;
     onColorsChange: (colors: TabBarColors) => void;
+    onConfigChange: (config: TabBarConfig) => void;
+    onOpacityChange: (opacity: TabBarOpacity) => void;
+    onReset: () => void;
+    onShuffleBackground: () => void;
+    onTouchFeedbackColorChange: (color: string) => void;
+    opacity: TabBarOpacity;
+    touchFeedbackColor: string;
 }
 
-interface ColorFieldProps {
-    colorKey: ColorKey;
-    colors: TabBarColors;
-    draft: string;
+interface NumberFieldProps {
+    decimals?: number;
     label: string;
-    onChange: (key: ColorKey, value: string) => void;
-    onDraftChange: (key: ColorKey, value: string) => void;
+    max: number;
+    min: number;
+    onChange: (value: number) => void;
+    step?: number;
+    value: number;
 }
 
-const ColorField = ({
-    colorKey,
-    colors,
-    draft,
+const formatNumber = (value: number, decimals: number) =>
+    decimals === 0
+        ? String(Math.round(value))
+        : String(Number(value.toFixed(decimals)));
+
+const NumberField = ({
+    decimals = 2,
+    label,
+    max,
+    min,
+    onChange,
+    step = 0.1,
+    value,
+}: NumberFieldProps) => {
+    const normalized = Math.min(Math.max(value, min), max);
+
+    return (
+        <View style={styles.numberField}>
+            <Text numberOfLines={1} style={styles.sliderLabel}>
+                {label}
+            </Text>
+            <Slider
+                accessibilityLabel={label}
+                maximumTrackTintColor="#CBD5E1"
+                maximumValue={max}
+                minimumTrackTintColor="#2563EB"
+                minimumValue={min}
+                onValueChange={(nextValue) =>
+                    onChange(Number(nextValue.toFixed(decimals)))
+                }
+                step={step}
+                style={styles.slider}
+                thumbTintColor="#2563EB"
+                value={normalized}
+            />
+            <Text style={styles.sliderValue}>
+                {formatNumber(normalized, decimals)}
+            </Text>
+        </View>
+    );
+};
+
+interface ColorHexInputProps {
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}
+
+const ColorHexInputField = ({ label, onChange, value }: ColorHexInputProps) => {
+    const [draft, setDraft] = useState(value);
+
+    const updateDraft = (draft: string) => {
+        const normalized = draft.startsWith("#") ? draft : `#${draft}`;
+        setDraft(normalized);
+        if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+            onChange(normalized);
+        }
+    };
+
+    return (
+        <TextInput
+            accessibilityLabel={`${label} hexadecimal color`}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={7}
+            onBlur={() => {
+                if (!/^#[0-9a-fA-F]{6}$/.test(draft)) {
+                    setDraft(value);
+                }
+            }}
+            onChangeText={updateDraft}
+            selectTextOnFocus
+            style={styles.hexInput}
+            value={draft}
+        />
+    );
+};
+
+const ColorHexInput = (props: ColorHexInputProps) => (
+    <ColorHexInputField key={`${props.label}:${props.value}`} {...props} />
+);
+
+const ToggleField = ({
     label,
     onChange,
-    onDraftChange,
-}: ColorFieldProps) => (
-    <View style={styles.colorField}>
-        <View style={styles.colorFieldHeader}>
-            <Text style={styles.colorFieldLabel}>{label}</Text>
-            <TextInput
-                accessibilityLabel={`${label} hexadecimal color`}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                maxLength={7}
-                onBlur={() => onDraftChange(colorKey, colors[colorKey])}
-                onChangeText={(value) => onDraftChange(colorKey, value)}
-                selectTextOnFocus
-                style={styles.hexInput}
-                value={draft}
+    value,
+}: {
+    label: string;
+    onChange: (value: boolean) => void;
+    value: boolean;
+}) => (
+    <Pressable
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        onPress={() => onChange(!value)}
+        style={({ pressed }) => [styles.toggleRow, pressed && styles.pressed]}
+    >
+        <Text style={styles.fieldLabel}>{label}</Text>
+        <View style={[styles.toggleTrack, value && styles.toggleTrackActive]}>
+            <View
+                style={[styles.toggleThumb, value && styles.toggleThumbActive]}
             />
         </View>
-        <View style={styles.swatches}>
-            {COLOR_OPTIONS.map((color) => {
-                const selected =
-                    colors[colorKey].toLowerCase() === color.toLowerCase();
+    </Pressable>
+);
 
-                return (
-                    <Pressable
-                        accessibilityLabel={`Set ${label} to ${color}`}
-                        accessibilityRole="button"
-                        key={color}
-                        onPress={() => onChange(colorKey, color)}
-                        style={[
-                            styles.swatchButton,
-                            selected && styles.swatchButtonSelected,
-                        ]}
-                    >
-                        <View
-                            style={[
-                                styles.swatch,
-                                { backgroundColor: color },
-                            ]}
-                        />
-                    </Pressable>
-                );
-            })}
-        </View>
+const Section = ({
+    children,
+    title,
+}: {
+    children: ReactNode;
+    title: string;
+}) => (
+    <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {children}
+    </View>
+);
+
+const AccordionSection = ({
+    children,
+    expanded,
+    onPress,
+    title,
+}: {
+    children: ReactNode;
+    expanded: boolean;
+    onPress: () => void;
+    title: string;
+}) => (
+    <View style={styles.accordionSection}>
+        <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+            onPress={onPress}
+            style={({ pressed }) => [
+                styles.accordionHeader,
+                expanded && styles.accordionHeaderOpen,
+                pressed && styles.pressed,
+            ]}
+        >
+            <Text
+                style={[
+                    styles.accordionTitle,
+                    expanded && styles.accordionTitleOpen,
+                ]}
+            >
+                {title}
+            </Text>
+            <MaterialIcons
+                color={expanded ? "#0F172A" : "#64748B"}
+                name={expanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                size={22}
+            />
+        </Pressable>
+        {expanded && (
+            <View style={styles.accordionContent}>{children}</View>
+        )}
     </View>
 );
 
 export const ColorCustomizer = ({
+    blur,
     colors,
+    config,
+    onBlurChange,
     onColorsChange,
+    onConfigChange,
+    onOpacityChange,
+    onReset,
+    onShuffleBackground,
+    onTouchFeedbackColorChange,
+    opacity,
+    touchFeedbackColor,
 }: ColorCustomizerProps) => {
-    const [drafts, setDrafts] = useState<TabBarColors>({ ...colors });
+    const [activePanel, setActivePanel] = useState<PanelKey | null>(null);
 
-    const updateColor = (key: ColorKey, value: string) => {
-        onColorsChange({ ...colors, [key]: value });
-        setDrafts((current) => ({ ...current, [key]: value }));
+    const togglePanel = (panel: PanelKey) =>
+        setActivePanel((current) => (current === panel ? null : panel));
+
+    const updateLayout = (key: LayoutNumberKey, value: number) => {
+        onConfigChange({
+            ...config,
+            layout: { ...config.layout, [key]: value },
+        });
     };
 
-    const updateDraft = (key: ColorKey, value: string) => {
-        const normalized = value.startsWith("#") ? value : `#${value}`;
-        setDrafts((current) => ({ ...current, [key]: normalized }));
-
-        if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-            onColorsChange({ ...colors, [key]: normalized });
-        }
+    const updateJellySpring = (
+        spring: JellySpringKey,
+        key: SpringValueKey,
+        value: number,
+    ) => {
+        onConfigChange({
+            ...config,
+            pillJelly: {
+                ...config.pillJelly,
+                frameConfig: {
+                    ...config.pillJelly.frameConfig,
+                    springs: {
+                        ...config.pillJelly.frameConfig.springs,
+                        [spring]: {
+                            ...config.pillJelly.frameConfig.springs[spring],
+                            [key]: value,
+                        },
+                    },
+                },
+            },
+        });
     };
 
-    const applyPreset = (presetColors: TabBarColors) => {
-        onColorsChange({ ...presetColors });
-        setDrafts({ ...presetColors });
+    const updateDistortionSpring = (
+        key: DistortionSpringKey,
+        value: number,
+    ) => {
+        onConfigChange({
+            ...config,
+            distortion: {
+                ...config.distortion,
+                spring: { ...config.distortion.spring, [key]: value },
+            },
+        });
+    };
+
+    const updateVerticalDrag = (key: VerticalDragKey, value: number) => {
+        onConfigChange({
+            ...config,
+            distortion: {
+                ...config.distortion,
+                verticalDrag: {
+                    ...config.distortion.verticalDrag,
+                    [key]: value,
+                },
+            },
+        });
+    };
+
+    const updateTouchFeedback = (key: TouchFeedbackKey, value: number) => {
+        onConfigChange({
+            ...config,
+            distortion: {
+                ...config.distortion,
+                touchFeedback: {
+                    ...config.distortion.touchFeedback,
+                    [key]: value,
+                },
+            },
+        });
     };
 
     return (
         <View style={styles.panel}>
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.eyebrow}>COLOR LAB</Text>
-                    <Text style={styles.title}>Solid surfaces</Text>
-                </View>
-                <View style={styles.opaqueBadge}>
-                    <View style={styles.opaqueDot} />
-                    <Text style={styles.opaqueBadgeText}>OPAQUE</Text>
+                <Text style={styles.title}>oh-my-tabs</Text>
+                <View style={styles.headerActions}>
+                    <Pressable
+                        accessibilityLabel="Change background image"
+                        accessibilityRole="button"
+                        onPress={onShuffleBackground}
+                        style={({ pressed }) => [
+                            styles.githubButton,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <MaterialIcons color="#F8FAFC" name="image" size={16} />
+                        <Text style={styles.githubButtonText}>Change bg</Text>
+                    </Pressable>
+                    <Pressable
+                        accessibilityLabel="Open oh-my-tabs on GitHub"
+                        accessibilityRole="link"
+                        onPress={() => Linking.openURL(GITHUB_URL)}
+                        style={({ pressed }) => [
+                            styles.githubButton,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <MaterialIcons color="#F8FAFC" name="code" size={16} />
+                        <Text style={styles.githubButtonText}>GitHub</Text>
+                    </Pressable>
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={onReset}
+                        style={({ pressed }) => [
+                            styles.resetButton,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <Text style={styles.resetButtonText}>Reset</Text>
+                    </Pressable>
                 </View>
             </View>
 
-            <View style={styles.presets}>
-                {PRESETS.map((preset) => (
-                    <Pressable
-                        accessibilityLabel={`Apply ${preset.label} palette`}
-                        accessibilityRole="button"
-                        key={preset.label}
-                        onPress={() => applyPreset(preset.colors)}
-                        style={styles.presetButton}
-                    >
-                        <View style={styles.presetPreview}>
+            <View style={styles.accordion}>
+                <AccordionSection
+                    expanded={activePanel === "palette"}
+                    onPress={() => togglePanel("palette")}
+                    title="Palette"
+                >
+                    <View style={styles.paletteGrid}>
+                        {PALETTES.map((palette) => {
+                            const selected = Object.keys(colors).every(
+                                (key) =>
+                                    colors[key as ColorKey].toLowerCase() ===
+                                    palette.colors[key as ColorKey].toLowerCase(),
+                            );
+                            return (
+                                <Pressable
+                                    accessibilityLabel={`Apply ${palette.label} palette`}
+                                    accessibilityRole="button"
+                                    key={palette.label}
+                                    onPress={() => {
+                                        onColorsChange({ ...palette.colors });
+                                        onOpacityChange({ ...THEME_OPACITY });
+                                        onTouchFeedbackColorChange(
+                                            palette.colors.selectedSurface,
+                                        );
+                                    }}
+                                    style={({ pressed }) => [
+                                        styles.paletteButton,
+                                        {
+                                            backgroundColor:
+                                                palette.colors.selectedSurface,
+                                        },
+                                        selected && styles.paletteButtonActive,
+                                        pressed && styles.pressed,
+                                    ]}
+                                />
+                            );
+                        })}
+                    </View>
+
+                    <Section title="Color and opacity">
+                        {COLOR_FIELDS.map((field) => (
+                            <View key={field.key} style={styles.colorRow}>
+                                <View
+                                    style={[
+                                        styles.colorPreview,
+                                        { backgroundColor: "#D4D4D8" },
+                                    ]}
+                                >
+                                    <View
+                                        style={[
+                                            StyleSheet.absoluteFill,
+                                            {
+                                                backgroundColor:
+                                                    colors[field.key],
+                                                opacity: opacity[field.key],
+                                            },
+                                        ]}
+                                    />
+                                </View>
+                                <View style={styles.colorNameColumn}>
+                                    <Text style={styles.fieldLabel}>
+                                        {field.label}
+                                    </Text>
+                                    <ColorHexInput
+                                        label={field.label}
+                                        onChange={(value) =>
+                                            onColorsChange({
+                                                ...colors,
+                                                [field.key]: value,
+                                            })
+                                        }
+                                        value={colors[field.key]}
+                                    />
+                                </View>
+                                <View style={styles.opacityField}>
+                                    <NumberField
+                                        label="Opacity"
+                                        max={1}
+                                        min={0}
+                                        onChange={(value) =>
+                                            onOpacityChange({
+                                                ...opacity,
+                                                [field.key as OpacityKey]:
+                                                    value,
+                                            })
+                                        }
+                                        step={0.05}
+                                        value={opacity[field.key]}
+                                    />
+                                </View>
+                            </View>
+                        ))}
+                    </Section>
+
+                    <Section title="Touch feedback">
+                        <View style={styles.colorRow}>
                             <View
                                 style={[
-                                    styles.presetHalf,
-                                    { backgroundColor: preset.colors.surface },
+                                    styles.colorPreview,
+                                    { backgroundColor: "#D4D4D8" },
                                 ]}
+                            >
+                                <View
+                                    style={[
+                                        StyleSheet.absoluteFill,
+                                        {
+                                            backgroundColor: touchFeedbackColor,
+                                            opacity:
+                                                config.distortion.touchFeedback
+                                                    .opacity,
+                                        },
+                                    ]}
+                                />
+                            </View>
+                            <View style={styles.colorNameColumn}>
+                                <Text style={styles.fieldLabel}>Color</Text>
+                                <ColorHexInput
+                                    label="Touch feedback"
+                                    onChange={onTouchFeedbackColorChange}
+                                    value={touchFeedbackColor}
+                                />
+                            </View>
+                        </View>
+                        <View style={styles.twoColumnGrid}>
+                            {(
+                                Object.keys(
+                                    config.distortion.touchFeedback,
+                                ) as TouchFeedbackKey[]
+                            ).map((key) => (
+                                <NumberField
+                                    decimals={key === "radius" ? 0 : 2}
+                                    key={key}
+                                    label={
+                                        key === "middleOpacityRatio"
+                                            ? "Middle opacity ratio"
+                                            : `${key[0].toUpperCase()}${key.slice(1)}`
+                                    }
+                                    max={
+                                        key === "radius"
+                                            ? 400
+                                            : key === "scale"
+                                              ? 5
+                                              : 1
+                                    }
+                                    min={0}
+                                    onChange={(value) =>
+                                        updateTouchFeedback(key, value)
+                                    }
+                                    step={key === "radius" ? 5 : 0.05}
+                                    value={config.distortion.touchFeedback[key]}
+                                />
+                            ))}
+                        </View>
+                    </Section>
+
+                    <Section title="Backdrop blur">
+                        <View style={styles.twoColumnGrid}>
+                            <NumberField
+                                decimals={0}
+                                label="Track intensity"
+                                max={100}
+                                min={0}
+                                onChange={(track) =>
+                                    onBlurChange({ ...blur, track })
+                                }
+                                step={5}
+                                value={blur.track}
                             />
-                            <View
-                                style={[
-                                    styles.presetHalf,
-                                    {
-                                        backgroundColor:
-                                            preset.colors.selectedSurface,
-                                    },
-                                ]}
+                            <NumberField
+                                decimals={0}
+                                label="Pill intensity"
+                                max={100}
+                                min={0}
+                                onChange={(pill) =>
+                                    onBlurChange({ ...blur, pill })
+                                }
+                                step={5}
+                                value={blur.pill}
                             />
                         </View>
-                        <Text style={styles.presetLabel}>{preset.label}</Text>
-                    </Pressable>
-                ))}
+                    </Section>
+                </AccordionSection>
+
+                <AccordionSection
+                    expanded={activePanel === "layout"}
+                    onPress={() => togglePanel("layout")}
+                    title="Layout"
+                >
+                    <Section title="Geometry">
+                        <View style={styles.twoColumnGrid}>
+                            <NumberField
+                                decimals={0}
+                                label="Icon size"
+                                max={64}
+                                min={8}
+                                onChange={(value) =>
+                                    updateLayout("iconSize", value)
+                                }
+                                step={1}
+                                value={config.layout.iconSize}
+                            />
+                            <NumberField
+                                decimals={0}
+                                label="Item height"
+                                max={120}
+                                min={24}
+                                onChange={(value) =>
+                                    updateLayout("itemHeight", value)
+                                }
+                                step={1}
+                                value={config.layout.itemHeight}
+                            />
+                            <NumberField
+                                decimals={0}
+                                label="Track height"
+                                max={128}
+                                min={32}
+                                onChange={(value) =>
+                                    updateLayout("trackHeight", value)
+                                }
+                                step={1}
+                                value={config.layout.trackHeight}
+                            />
+                            <NumberField
+                                decimals={0}
+                                label="Track inset"
+                                max={32}
+                                min={0}
+                                onChange={(value) =>
+                                    updateLayout("trackInset", value)
+                                }
+                                step={1}
+                                value={config.layout.trackInset}
+                            />
+                            <NumberField
+                                decimals={0}
+                                label="Mask overscan X"
+                                max={160}
+                                min={0}
+                                onChange={(value) =>
+                                    updateLayout("maskOverscanX", value)
+                                }
+                                step={1}
+                                value={config.layout.maskOverscanX}
+                            />
+                            <NumberField
+                                decimals={0}
+                                label="Mask overscan Y"
+                                max={80}
+                                min={0}
+                                onChange={(value) =>
+                                    updateLayout("maskOverscanY", value)
+                                }
+                                step={1}
+                                value={config.layout.maskOverscanY}
+                            />
+                        </View>
+                    </Section>
+                </AccordionSection>
+
+                <AccordionSection
+                    expanded={activePanel === "motion"}
+                    onPress={() => togglePanel("motion")}
+                    title="Motion"
+                >
+                    <Section title="Jelly behavior">
+                        <ToggleField
+                            label="Snap on pointer down"
+                            onChange={(snapOnPointerDown) =>
+                                onConfigChange({
+                                    ...config,
+                                    pillJelly: {
+                                        ...config.pillJelly,
+                                        snapOnPointerDown,
+                                    },
+                                })
+                            }
+                            value={config.pillJelly.snapOnPointerDown}
+                        />
+                        <View style={styles.twoColumnGrid}>
+                            <NumberField
+                                label="Pressed scale"
+                                max={2}
+                                min={0.5}
+                                onChange={(pressedScale) =>
+                                    onConfigChange({
+                                        ...config,
+                                        pillJelly: {
+                                            ...config.pillJelly,
+                                            pressedScale,
+                                        },
+                                    })
+                                }
+                                step={0.05}
+                                value={config.pillJelly.pressedScale}
+                            />
+                            <NumberField
+                                decimals={3}
+                                label="Release distance"
+                                max={1}
+                                min={0}
+                                onChange={(releaseDistanceFraction) =>
+                                    onConfigChange({
+                                        ...config,
+                                        pillJelly: {
+                                            ...config.pillJelly,
+                                            frameConfig: {
+                                                ...config.pillJelly.frameConfig,
+                                                releaseDistanceFraction,
+                                            },
+                                        },
+                                    })
+                                }
+                                step={0.005}
+                                value={
+                                    config.pillJelly.frameConfig
+                                        .releaseDistanceFraction
+                                }
+                            />
+                        </View>
+                    </Section>
+
+                    {(
+                        Object.keys(
+                            config.pillJelly.frameConfig.springs,
+                        ) as JellySpringKey[]
+                    ).map((spring) => (
+                        <Section
+                            key={spring}
+                            title={`${spring[0].toUpperCase()}${spring.slice(1)} spring`}
+                        >
+                            <View style={styles.twoColumnGrid}>
+                                <NumberField
+                                    decimals={0}
+                                    label="Stiffness"
+                                    max={3000}
+                                    min={1}
+                                    onChange={(value) =>
+                                        updateJellySpring(
+                                            spring,
+                                            "stiffness",
+                                            value,
+                                        )
+                                    }
+                                    step={10}
+                                    value={
+                                        config.pillJelly.frameConfig.springs[
+                                            spring
+                                        ].stiffness
+                                    }
+                                />
+                                <NumberField
+                                    label="Damping ratio"
+                                    max={2}
+                                    min={0.05}
+                                    onChange={(value) =>
+                                        updateJellySpring(
+                                            spring,
+                                            "dampingRatio",
+                                            value,
+                                        )
+                                    }
+                                    step={0.05}
+                                    value={
+                                        config.pillJelly.frameConfig.springs[
+                                            spring
+                                        ].dampingRatio
+                                    }
+                                />
+                            </View>
+                        </Section>
+                    ))}
+                </AccordionSection>
+
+                <AccordionSection
+                    expanded={activePanel === "touch"}
+                    onPress={() => togglePanel("touch")}
+                    title="Touch"
+                >
+                    <Section title="Press transform">
+                        <View style={styles.twoColumnGrid}>
+                            <NumberField
+                                label="Pressed scale"
+                                max={1.5}
+                                min={0.5}
+                                onChange={(pressedScale) =>
+                                    onConfigChange({
+                                        ...config,
+                                        distortion: {
+                                            ...config.distortion,
+                                            pressedScale,
+                                        },
+                                    })
+                                }
+                                step={0.025}
+                                value={config.distortion.pressedScale}
+                            />
+                        </View>
+                    </Section>
+
+                    <Section title="Distortion spring">
+                        <View style={styles.twoColumnGrid}>
+                            {(
+                                Object.keys(
+                                    config.distortion.spring,
+                                ) as DistortionSpringKey[]
+                            ).map((key) => (
+                                <NumberField
+                                    decimals={key === "mass" ? 2 : 0}
+                                    key={key}
+                                    label={`${key[0].toUpperCase()}${key.slice(1)}`}
+                                    max={key === "mass" ? 10 : 2000}
+                                    min={key === "mass" ? 0.05 : 1}
+                                    onChange={(value) =>
+                                        updateDistortionSpring(key, value)
+                                    }
+                                    step={key === "mass" ? 0.1 : 5}
+                                    value={config.distortion.spring[key]}
+                                />
+                            ))}
+                        </View>
+                    </Section>
+
+                    <Section title="Vertical drag">
+                        <View style={styles.twoColumnGrid}>
+                            {(
+                                Object.keys(
+                                    config.distortion.verticalDrag,
+                                ) as VerticalDragKey[]
+                            ).map((key) => (
+                                <NumberField
+                                    decimals={
+                                        key === "distanceForMaxDistortion"
+                                            ? 0
+                                            : 2
+                                    }
+                                    key={key}
+                                    label={
+                                        key === "distanceForMaxDistortion"
+                                            ? "Max distortion distance"
+                                            : key === "rubberBand"
+                                              ? "Rubber band"
+                                              : `${key[0].toUpperCase()}${key.slice(1)}`
+                                    }
+                                    max={
+                                        key === "distanceForMaxDistortion"
+                                            ? 2000
+                                            : 1
+                                    }
+                                    min={0}
+                                    onChange={(value) =>
+                                        updateVerticalDrag(key, value)
+                                    }
+                                    step={
+                                        key === "distanceForMaxDistortion"
+                                            ? 25
+                                            : 0.05
+                                    }
+                                    value={config.distortion.verticalDrag[key]}
+                                />
+                            ))}
+                        </View>
+                    </Section>
+                </AccordionSection>
             </View>
-
-            <View style={styles.divider} />
-
-            {COLOR_FIELDS.map((field) => (
-                <ColorField
-                    colorKey={field.key}
-                    colors={colors}
-                    draft={drafts[field.key]}
-                    key={field.key}
-                    label={field.label}
-                    onChange={updateColor}
-                    onDraftChange={updateDraft}
-                />
-            ))}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     panel: {
-        width: "100%",
-        maxWidth: 480,
-        paddingHorizontal: 18,
-        paddingBottom: 16,
-        paddingTop: 17,
-        backgroundColor: "#F2EEE7",
-        borderColor: "#D7D0C5",
-        borderRadius: 24,
+        backgroundColor: "#F8FAFC",
+        borderColor: "#CBD5E1",
+        borderRadius: 18,
         borderWidth: 1,
-        shadowColor: "#000000",
-        shadowOffset: { height: 10, width: 0 },
-        shadowOpacity: 0.22,
-        shadowRadius: 24,
+        maxWidth: 520,
+        overflow: "hidden",
+        shadowColor: "#0F172A",
+        shadowOffset: { height: 12, width: 0 },
+        shadowOpacity: 0.18,
+        shadowRadius: 28,
+        userSelect: "none",
+        width: "100%",
         elevation: 8,
     },
     header: {
         alignItems: "center",
         flexDirection: "row",
         justifyContent: "space-between",
-    },
-    eyebrow: {
-        color: "#766F66",
-        fontSize: 10,
-        fontWeight: "800",
-        letterSpacing: 1.8,
+        paddingHorizontal: 16,
+        paddingBottom: 8,
+        paddingTop: 10,
     },
     title: {
-        color: "#171614",
-        fontSize: 24,
-        fontWeight: "700",
-        letterSpacing: -0.7,
-        marginTop: 1,
-    },
-    opaqueBadge: {
-        alignItems: "center",
-        backgroundColor: "#E5DED3",
-        borderRadius: 999,
-        flexDirection: "row",
-        gap: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-    },
-    opaqueDot: {
-        backgroundColor: "#27483B",
-        borderRadius: 999,
-        height: 7,
-        width: 7,
-    },
-    opaqueBadgeText: {
-        color: "#4D4943",
-        fontSize: 9,
-        fontWeight: "800",
-        letterSpacing: 1.1,
-    },
-    presets: {
-        flexDirection: "row",
-        gap: 7,
-        marginTop: 14,
-    },
-    presetButton: {
-        alignItems: "center",
-        backgroundColor: "#E8E2D9",
-        borderRadius: 12,
-        flex: 1,
-        gap: 5,
-        paddingHorizontal: 5,
-        paddingVertical: 7,
-    },
-    presetPreview: {
-        borderColor: "#FFFFFF",
-        borderRadius: 999,
-        borderWidth: 1,
-        flexDirection: "row",
-        height: 18,
-        overflow: "hidden",
-        width: 36,
-    },
-    presetHalf: {
-        flex: 1,
-    },
-    presetLabel: {
-        color: "#4D4943",
-        fontSize: 10,
-        fontWeight: "700",
-    },
-    divider: {
-        backgroundColor: "#D7D0C5",
-        height: 1,
-        marginBottom: 6,
-        marginTop: 13,
-    },
-    colorField: {
-        marginTop: 8,
-    },
-    colorFieldHeader: {
-        alignItems: "center",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: 6,
-    },
-    colorFieldLabel: {
-        color: "#4D4943",
-        fontSize: 11,
-        fontWeight: "700",
-        letterSpacing: 0.4,
-    },
-    hexInput: {
-        backgroundColor: "#E5DED3",
-        borderRadius: 7,
-        color: "#26231F",
+        color: "#0F172A",
+        flexShrink: 0,
         fontFamily: "monospace",
-        fontSize: 10,
+        fontSize: 17,
         fontWeight: "700",
-        height: 25,
-        paddingHorizontal: 8,
-        paddingVertical: 0,
-        textAlign: "center",
-        width: 74,
+        letterSpacing: -0.5,
     },
-    swatches: {
+    headerActions: {
+        alignItems: "center",
+        flexDirection: "row",
+        flexShrink: 1,
+        flexWrap: "wrap",
+        gap: 6,
+        justifyContent: "flex-end",
+    },
+    githubButton: {
+        alignItems: "center",
+        backgroundColor: "#0F172A",
+        borderRadius: 8,
+        flexDirection: "row",
+        gap: 5,
+        paddingHorizontal: 9,
+        paddingVertical: 7,
+    },
+    githubButtonText: {
+        color: "#F8FAFC",
+        fontSize: 12,
+        fontWeight: "700",
+    },
+    resetButton: {
+        backgroundColor: "#E2E8F0",
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+    },
+    resetButtonText: {
+        color: "#334155",
+        fontSize: 12,
+        fontWeight: "700",
+    },
+    pressed: {
+        opacity: 0.72,
+        transform: [{ scale: 0.98 }],
+    },
+    accordion: {
+        borderTopColor: "#E2E8F0",
+        borderTopWidth: 1,
+    },
+    accordionSection: {
+        borderBottomColor: "#E2E8F0",
+        borderBottomWidth: 1,
+    },
+    accordionHeader: {
+        alignItems: "center",
         flexDirection: "row",
         justifyContent: "space-between",
+        paddingHorizontal: 16,
+        paddingVertical: 8,
     },
-    swatchButton: {
-        alignItems: "center",
+    accordionHeaderOpen: {
+        backgroundColor: "#FFFFFF",
+    },
+    accordionTitle: {
+        color: "#64748B",
+        fontSize: 12,
+        fontWeight: "700",
+        letterSpacing: 0.2,
+    },
+    accordionTitleOpen: {
+        color: "#0F172A",
+    },
+    accordionContent: {
+        backgroundColor: "#FFFFFF",
+        paddingBottom: 6,
+        paddingHorizontal: 16,
+        paddingTop: 2,
+    },
+    section: {
+        marginBottom: 10,
+    },
+    sectionTitle: {
+        color: "#334155",
+        fontSize: 12,
+        fontWeight: "700",
+        marginBottom: 6,
+    },
+    paletteGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 6,
+        marginBottom: 10,
+    },
+    paletteButton: {
         borderColor: "transparent",
-        borderRadius: 999,
+        borderRadius: 8,
         borderWidth: 2,
         height: 30,
-        justifyContent: "center",
-        width: 30,
+        width: "18%",
     },
-    swatchButtonSelected: {
-        borderColor: "#171614",
+    paletteButtonActive: {
+        borderColor: "#0F172A",
     },
-    swatch: {
-        borderColor: "#D0C8BC",
-        borderRadius: 999,
+    colorRow: {
+        alignItems: "center",
+        borderBottomColor: "#E2E8F0",
+        borderBottomWidth: 1,
+        flexDirection: "row",
+        gap: 10,
+        paddingVertical: 6,
+    },
+    colorPreview: {
+        borderColor: "#CBD5E1",
+        borderRadius: 8,
         borderWidth: 1,
+        height: 34,
+        overflow: "hidden",
+        width: 34,
+    },
+    colorNameColumn: {
+        flex: 1,
+        gap: 4,
+    },
+    fieldLabel: {
+        color: "#475569",
+        fontSize: 11,
+        fontWeight: "600",
+    },
+    hexInput: {
+        color: "#0F172A",
+        fontFamily: "monospace",
+        fontSize: 11,
+        fontWeight: "600",
         height: 22,
-        width: 22,
+        padding: 0,
+    },
+    opacityField: {
+        flex: 1.3,
+    },
+    twoColumnGrid: {
+        gap: 6,
+    },
+    numberField: {
+        alignItems: "center",
+        backgroundColor: "#F1F5F9",
+        borderRadius: 9,
+        flexDirection: "row",
+        gap: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+    },
+    sliderLabel: {
+        color: "#475569",
+        flexShrink: 1,
+        fontSize: 11,
+        fontWeight: "600",
+        minWidth: 0,
+    },
+    sliderValue: {
+        color: "#0F172A",
+        fontFamily: "monospace",
+        fontSize: 11,
+        fontWeight: "700",
+        minWidth: 30,
+        textAlign: "right",
+    },
+    slider: {
+        flex: 1,
+        height: 24,
+        minWidth: 60,
+    },
+    toggleRow: {
+        alignItems: "center",
+        backgroundColor: "#F1F5F9",
+        borderRadius: 9,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+    toggleTrack: {
+        backgroundColor: "#CBD5E1",
+        borderRadius: 999,
+        height: 22,
+        justifyContent: "center",
+        padding: 2,
+        width: 38,
+    },
+    toggleTrackActive: {
+        backgroundColor: "#2563EB",
+    },
+    toggleThumb: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 999,
+        height: 18,
+        width: 18,
+    },
+    toggleThumbActive: {
+        alignSelf: "flex-end",
     },
 });

@@ -1,14 +1,23 @@
 import { TabItem, type TabsIconProps } from "./tab-item";
 import {
     DEFAULT_TAB_BAR_COLORS,
-    DISTORTION,
-    TABBAR_LAYOUT,
+    DEFAULT_TAB_BAR_OPACITY,
+    resolveTabBarConfig,
+    type DeepPartial,
+    type TabBarConfig,
     type TabBarColors,
+    type TabBarOpacity,
 } from "../constants";
 import { usePillJelly } from "../hooks/use-pill-jelly";
 import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
-import { cloneElement, useRef, type ReactElement } from "react";
+import {
+    cloneElement,
+    useMemo,
+    useRef,
+    type ReactElement,
+    type ReactNode,
+} from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
@@ -20,10 +29,14 @@ export interface TabsItem {
 }
 
 export interface TabsProps {
+    backdrop?: ReactNode;
     colors?: Partial<TabBarColors>;
+    config?: DeepPartial<TabBarConfig>;
     displayScale?: number;
     recording?: boolean;
     items: readonly TabsItem[];
+    opacity?: Partial<TabBarOpacity>;
+    selectedBackdrop?: ReactNode;
     touchFeedbackEnabled?: boolean;
     touchFeedbackColor?: string;
     touchFeedbackOpacity?: number;
@@ -31,54 +44,79 @@ export interface TabsProps {
 }
 
 export const Tabs = ({
+    backdrop,
     colors,
+    config,
     displayScale = 1,
     items,
+    opacity,
     recording = false,
+    selectedBackdrop,
     touchFeedbackColor,
     touchFeedbackEnabled = true,
-    touchFeedbackOpacity = DISTORTION.touchFeedback.opacity,
-    touchFeedbackScale = DISTORTION.touchFeedback.scale,
+    touchFeedbackOpacity,
+    touchFeedbackScale,
 }: TabsProps) => {
     const trackRef = useRef<View>(null);
+    const resolvedConfig = useMemo(() => resolveTabBarConfig(config), [config]);
     const resolvedColors = {
         ...DEFAULT_TAB_BAR_COLORS,
         ...colors,
     };
+    const resolvedOpacity = {
+        ...DEFAULT_TAB_BAR_OPACITY,
+        ...opacity,
+    };
+    const normalizeOpacity = (value: number) => Math.min(Math.max(value, 0), 1);
+    const activeContentOpacity = normalizeOpacity(
+        resolvedOpacity.activeContent,
+    );
+    const inactiveContentOpacity = normalizeOpacity(
+        resolvedOpacity.inactiveContent,
+    );
+    const selectedSurfaceOpacity = normalizeOpacity(
+        resolvedOpacity.selectedSurface,
+    );
+    const surfaceOpacity = normalizeOpacity(resolvedOpacity.surface);
+    const resolvedTouchFeedbackOpacity =
+        touchFeedbackOpacity ?? resolvedConfig.distortion.touchFeedback.opacity;
+    const resolvedTouchFeedbackScale =
+        touchFeedbackScale ?? resolvedConfig.distortion.touchFeedback.scale;
     const resolvedTouchFeedbackColor =
         touchFeedbackColor ?? resolvedColors.selectedSurface;
-    const maskOverscanX =
-        TABBAR_LAYOUT.maskOverscanX * displayScale;
-    const maskOverscanY =
-        TABBAR_LAYOUT.maskOverscanY * displayScale;
-    const trackInset = TABBAR_LAYOUT.trackInset * displayScale;
-    const trackHeight = TABBAR_LAYOUT.trackHeight * displayScale;
-    const itemHeight = TABBAR_LAYOUT.itemHeight * displayScale;
-    const iconSize = TABBAR_LAYOUT.iconSize * displayScale;
+    const maskOverscanX = resolvedConfig.layout.maskOverscanX * displayScale;
+    const maskOverscanY = resolvedConfig.layout.maskOverscanY * displayScale;
+    const trackInset = resolvedConfig.layout.trackInset * displayScale;
+    const trackHeight = resolvedConfig.layout.trackHeight * displayScale;
+    const itemHeight = resolvedConfig.layout.itemHeight * displayScale;
+    const iconSize = resolvedConfig.layout.iconSize * displayScale;
     const normalizedTouchFeedbackOpacity = Math.min(
-        Math.max(touchFeedbackOpacity, 0),
+        Math.max(resolvedTouchFeedbackOpacity, 0),
         1,
     );
     const normalizedTouchFeedbackScale = Math.max(
-        touchFeedbackScale,
+        resolvedTouchFeedbackScale,
         0,
     );
     const touchFeedbackRadius =
-        DISTORTION.touchFeedback.radius *
+        resolvedConfig.distortion.touchFeedback.radius *
         normalizedTouchFeedbackScale *
         displayScale;
     const touchFeedbackDiameter = touchFeedbackRadius * 2;
     const touchFeedbackMiddleOpacity =
         normalizedTouchFeedbackOpacity *
-        DISTORTION.touchFeedback.middleOpacityRatio;
+        resolvedConfig.distortion.touchFeedback.middleOpacityRatio;
 
     const tabs = items.map((item) => (
         <TabItem
             activeColor={resolvedColors.activeContent}
+            activeOpacity={activeContentOpacity}
             displayScale={displayScale}
             icon={item.icon}
             iconSize={iconSize}
             inactiveColor={resolvedColors.inactiveContent}
+            inactiveOpacity={inactiveContentOpacity}
+            itemHeight={itemHeight}
             key={item.key}
             text={item.label}
         />
@@ -100,6 +138,7 @@ export const Tabs = ({
         touchFeedbackStyle,
     } = usePillJelly(
         tabCount,
+        resolvedConfig,
         recording,
         displayScale,
         touchFeedbackRadius,
@@ -120,11 +159,7 @@ export const Tabs = ({
                     pointerEvents="box-only"
                     ref={trackRef}
                     testID="tabs-drag-surface"
-                    style={[
-                        styles.track,
-                        { height: trackHeight },
-                        tabbarStyle,
-                    ]}
+                    style={[styles.track, { height: trackHeight }, tabbarStyle]}
                     onLayout={(event) => {
                         setTrackWidth(event.nativeEvent.layout.width);
                         if (Platform.OS === "web") {
@@ -138,16 +173,25 @@ export const Tabs = ({
                         pointerEvents="none"
                         style={[styles.panel, panelStyle]}
                     >
-                        <Animated.View
+                        <View
                             style={[
-                                styles.surface,
+                                styles.surfaceClip,
                                 {
-                                    backgroundColor:
-                                        resolvedColors.surface,
                                     borderRadius: trackHeight / 2,
                                 },
                             ]}
-                        />
+                        >
+                            {backdrop}
+                            <View
+                                style={[
+                                    styles.surface,
+                                    {
+                                        backgroundColor: resolvedColors.surface,
+                                        opacity: surfaceOpacity,
+                                    },
+                                ]}
+                            />
+                        </View>
 
                         {touchFeedbackEnabled && (
                             <View
@@ -164,9 +208,7 @@ export const Tabs = ({
                                     color={resolvedTouchFeedbackColor}
                                     diameter={touchFeedbackDiameter}
                                     gradientId="tabbar-touch-feedback"
-                                    middleOpacity={
-                                        touchFeedbackMiddleOpacity
-                                    }
+                                    middleOpacity={touchFeedbackMiddleOpacity}
                                     radius={touchFeedbackRadius}
                                 />
                             </View>
@@ -203,15 +245,19 @@ export const Tabs = ({
                                 left={maskOverscanX + trackInset}
                                 top={maskOverscanY + trackInset}
                             >
-                                <View
-                                    style={[
-                                        styles.selectedSurface,
-                                        {
-                                            backgroundColor:
-                                                resolvedColors.selectedSurface,
-                                        },
-                                    ]}
-                                />
+                                <View style={styles.selectedSurface}>
+                                    {selectedBackdrop}
+                                    <View
+                                        style={[
+                                            StyleSheet.absoluteFill,
+                                            {
+                                                backgroundColor:
+                                                    resolvedColors.selectedSurface,
+                                                opacity: selectedSurfaceOpacity,
+                                            },
+                                        ]}
+                                    />
+                                </View>
                                 {touchFeedbackEnabled && (
                                     <TouchFeedback
                                         animatedStyle={
@@ -220,12 +266,8 @@ export const Tabs = ({
                                         centerOpacity={
                                             normalizedTouchFeedbackOpacity
                                         }
-                                        color={
-                                            resolvedTouchFeedbackColor
-                                        }
-                                        diameter={
-                                            touchFeedbackDiameter
-                                        }
+                                        color={resolvedTouchFeedbackColor}
+                                        diameter={touchFeedbackDiameter}
                                         gradientId="selected-tab-touch-feedback"
                                         middleOpacity={
                                             touchFeedbackMiddleOpacity
@@ -249,22 +291,15 @@ export const Tabs = ({
                                         styles.selectedTabsRow,
                                         {
                                             height: itemHeight,
-                                            left:
-                                                maskOverscanX +
-                                                trackInset,
-                                            right:
-                                                maskOverscanX +
-                                                trackInset,
-                                            top:
-                                                maskOverscanY +
-                                                trackInset,
+                                            left: maskOverscanX + trackInset,
+                                            right: maskOverscanX + trackInset,
+                                            top: maskOverscanY + trackInset,
                                         },
                                     ]}
                                 >
                                     {tabs.map((tab, index) =>
                                         cloneElement(tab, {
-                                            animatedStyle:
-                                                activeItemStyle,
+                                            animatedStyle: activeItemStyle,
                                             isActive: true,
                                             key: `active-${index}`,
                                         }),
@@ -301,6 +336,14 @@ const styles = StyleSheet.create({
         right: 0,
         top: 0,
         bottom: 0,
+    },
+    surfaceClip: {
+        bottom: 0,
+        left: 0,
+        position: "absolute",
+        right: 0,
+        top: 0,
+        overflow: "hidden",
     },
     touchFeedbackClip: {
         position: "absolute",

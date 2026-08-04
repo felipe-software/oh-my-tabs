@@ -16,10 +16,13 @@ export interface TabsIconProps {
 
 export interface TabItemProps {
     activeColor?: string;
+    activeOpacity?: number;
     displayScale?: number;
     icon: ReactElement<TabsIconProps>;
     iconSize?: number;
     inactiveColor?: string;
+    inactiveOpacity?: number;
+    itemHeight?: number;
     text: string;
     isActive?: boolean;
     animatedStyle?: StyleProp<AnimatedStyle<ViewStyle>>;
@@ -27,28 +30,31 @@ export interface TabItemProps {
 
 export const TabItem = ({
     activeColor = "#000000",
+    activeOpacity = 1,
     displayScale = 1,
     icon,
     iconSize,
     inactiveColor = "#afafaf",
+    inactiveOpacity = 1,
+    itemHeight = TABBAR_LAYOUT.itemHeight * displayScale,
     text,
     isActive = false,
     animatedStyle,
 }: TabItemProps) => {
     const color = isActive ? activeColor : inactiveColor;
+    const opacity = isActive ? activeOpacity : inactiveOpacity;
 
     return (
         <Animated.View
             style={[
                 styles.item,
                 {
-                    height:
-                        TABBAR_LAYOUT.itemHeight * displayScale,
+                    height: itemHeight,
                 },
                 animatedStyle,
             ]}
         >
-            <View style={[styles.content]}>
+            <View style={[styles.content, { opacity }]}>
                 <View
                     style={{
                         transform: [{ translateY: 2 * displayScale }],

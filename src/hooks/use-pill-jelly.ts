@@ -1,4 +1,4 @@
-import { PILL_JELLY, TABBAR_LAYOUT } from "../constants";
+import type { TabBarConfig } from "../constants";
 import { useDistortion } from "./use-distortion";
 import {
     getMaxTabIndex,
@@ -11,6 +11,7 @@ import {
 } from "../utils/pill-jelly-animation";
 import { usePanGesture } from "react-native-gesture-handler";
 import { Platform, type ViewStyle } from "react-native";
+import { useCallback, useMemo } from "react";
 import {
     clamp,
     useAnimatedStyle,
@@ -23,16 +24,18 @@ const IS_WEB = Platform.OS === "web";
 
 export const usePillJelly = (
     tabCount: number,
+    config: TabBarConfig,
     recording = false,
     displayScale = 1,
     touchFeedbackRadius = 0,
 ) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
-    const itemHeight = TABBAR_LAYOUT.itemHeight * geometryScale;
-    const maskOverscanX = TABBAR_LAYOUT.maskOverscanX * geometryScale;
-    const maskOverscanY = TABBAR_LAYOUT.maskOverscanY * geometryScale;
-    const trackInset = TABBAR_LAYOUT.trackInset * geometryScale;
-    const trackHeight = TABBAR_LAYOUT.trackHeight * geometryScale;
+    const { layout, pillJelly } = config;
+    const itemHeight = layout.itemHeight * geometryScale;
+    const maskOverscanX = layout.maskOverscanX * geometryScale;
+    const maskOverscanY = layout.maskOverscanY * geometryScale;
+    const trackInset = layout.trackInset * geometryScale;
+    const trackHeight = layout.trackHeight * geometryScale;
     const {
         begin: beginTabbarInteraction,
         end: endTabbarInteraction,
@@ -42,7 +45,7 @@ export const usePillJelly = (
         tabbarStyle,
         touchFeedbackStyle,
         update: updateDistortion,
-    } = useDistortion(geometryScale, touchFeedbackRadius);
+    } = useDistortion(config, geometryScale, touchFeedbackRadius);
     const trackWidth = useSharedValue(0);
     const value = useSharedValue(0);
     const valueVelocity = useSharedValue(0);
@@ -72,36 +75,50 @@ export const usePillJelly = (
     const dragStartTarget = useSharedValue(0);
     const dragStartPanelOffset = useSharedValue(0);
 
-    const frameState: PillJellyFrameState = {
-        baseScaleX,
-        baseScaleXRate,
-        baseScaleY,
-        baseScaleYRate,
-        filteredVelocity,
-        filteredVelocityRate,
-        isDragging,
-        pressProgress,
-        pressProgressRate,
-        pressTarget,
-        rawPanelOffset,
-        rawPanelOffsetVelocity,
-        releasePending,
-        shapeTarget,
-        targetValue,
-        value,
-        valueVelocity,
-    };
+    // Shared values are stable for the lifetime of the hook. Keeping their
+    // container stable also prevents Reanimated from serializing it again on
+    // unrelated React renders such as a palette update.
+    const frameState = useMemo<PillJellyFrameState>(
+        () => ({
+            baseScaleX,
+            baseScaleXRate,
+            baseScaleY,
+            baseScaleYRate,
+            filteredVelocity,
+            filteredVelocityRate,
+            isDragging,
+            pressProgress,
+            pressProgressRate,
+            pressTarget,
+            rawPanelOffset,
+            rawPanelOffsetVelocity,
+            releasePending,
+            shapeTarget,
+            targetValue,
+            value,
+            valueVelocity,
+        }),
+        [],
+    );
 
-    useFrameCallback(({ timeSincePreviousFrame }) => {
-        "worklet";
-
-        advancePillJellyFrame(
-            frameState,
-            PILL_JELLY.frameConfig,
-            tabCount,
+    const frameCallback = useCallback(
+        ({
             timeSincePreviousFrame,
-        );
-    });
+        }: {
+            timeSincePreviousFrame: number | null;
+        }) => {
+            "worklet";
+
+            advancePillJellyFrame(
+                frameState,
+                pillJelly.frameConfig,
+                tabCount,
+                timeSincePreviousFrame,
+            );
+        },
+        [frameState, pillJelly.frameConfig, tabCount],
+    );
+    useFrameCallback(frameCallback);
 
     const panelOffset = useDerivedValue(() => {
         return getHorizontalPanelOffset(
@@ -118,11 +135,7 @@ export const usePillJelly = (
     const getPillMaskStyle = () => {
         "worklet";
 
-        const tabWidth = getTabWidth(
-            trackWidth.value,
-            trackInset,
-            tabCount,
-        );
+        const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
         const velocity = filteredVelocity.value / 10;
         const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
         const scaleYCorrection = clamp(velocity * 0.25, -0.2, 0.2);
@@ -138,18 +151,12 @@ export const usePillJelly = (
     };
 
     const pillMaskStyle = useAnimatedStyle(getPillMaskStyle);
-    const activePillMaskStyle = useAnimatedStyle(
-        getPillMaskStyle,
-    );
+    const activePillMaskStyle = useAnimatedStyle(getPillMaskStyle);
 
     const getPillClipStyle = () => {
         "worklet";
 
-        const tabWidth = getTabWidth(
-            trackWidth.value,
-            trackInset,
-            tabCount,
-        );
+        const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
         const velocity = filteredVelocity.value / 10;
         const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
         const scaleYCorrection = clamp(velocity * 0.25, -0.2, 0.2);
@@ -162,14 +169,9 @@ export const usePillJelly = (
             trackInset +
             value.value * tabWidth -
             (pillWidth - tabWidth) / 2;
-        const top =
-            maskOverscanY +
-            trackInset -
-            (pillHeight - itemHeight) / 2;
-        const right =
-            trackWidth.value + maskOverscanX * 2 - left - pillWidth;
-        const bottom =
-            trackHeight + maskOverscanY * 2 - top - pillHeight;
+        const top = maskOverscanY + trackInset - (pillHeight - itemHeight) / 2;
+        const right = trackWidth.value + maskOverscanX * 2 - left - pillWidth;
+        const bottom = trackHeight + maskOverscanY * 2 - top - pillHeight;
 
         // MaskedView has no web implementation. A CSS inset clip preserves
         // the same animated pill geometry while keeping its contents fixed.
@@ -193,11 +195,7 @@ export const usePillJelly = (
         rawPanelOffsetVelocity.value = 0;
         endTabbarInteraction();
 
-        const tabWidth = getTabWidth(
-            trackWidth.value,
-            trackInset,
-            tabCount,
-        );
+        const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
         let nextIndex: number;
 
         if (movedDistance.value < 4 && tabWidth > 0) {
@@ -224,12 +222,8 @@ export const usePillJelly = (
         downX.value = localX;
         movedDistance.value = 0;
 
-        const tabWidth = getTabWidth(
-            trackWidth.value,
-            trackInset,
-            tabCount,
-        );
-        if (PILL_JELLY.snapOnPointerDown && tabWidth > 0) {
+        const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
+        if (pillJelly.snapOnPointerDown && tabWidth > 0) {
             targetValue.value = clamp(
                 Math.floor((localX - trackInset) / tabWidth),
                 0,
@@ -242,7 +236,7 @@ export const usePillJelly = (
         isDragging.value = 1;
         releasePending.value = 0;
         pressTarget.value = 1;
-        shapeTarget.value = PILL_JELLY.pressedScale;
+        shapeTarget.value = pillJelly.pressedScale;
         rawPanelOffsetVelocity.value = 0;
     };
 
@@ -251,8 +245,7 @@ export const usePillJelly = (
         maxPointers: 1,
         shouldCancelWhenOutside: false,
         onTouchesDown: (event) => {
-            const firstTouch =
-                event.changedTouches[0] ?? event.allTouches[0];
+            const firstTouch = event.changedTouches[0] ?? event.allTouches[0];
             if (!firstTouch) {
                 return;
             }
@@ -264,9 +257,7 @@ export const usePillJelly = (
                 : IS_WEB && Number.isFinite(webTrackPageX.value)
                   ? firstTouch.absoluteX - webTrackPageX.value
                   : firstTouch.x;
-            const localY = recording
-                ? trackHeight / 2
-                : firstTouch.y;
+            const localY = recording ? trackHeight / 2 : firstTouch.y;
             const absoluteX = recording
                 ? firstTouch.absoluteY
                 : firstTouch.absoluteX;
@@ -291,23 +282,18 @@ export const usePillJelly = (
                 : event.translationY;
 
             targetValue.value = clamp(
-                dragStartTarget.value +
-                    horizontalTranslation / tabWidth,
+                dragStartTarget.value + horizontalTranslation / tabWidth,
                 0,
                 getMaxTabIndex(tabCount),
             );
-            const absoluteX = recording
-                ? event.absoluteY
-                : event.absoluteX;
+            const absoluteX = recording ? event.absoluteY : event.absoluteX;
 
             rawPanelOffset.value =
                 dragStartPanelOffset.value + horizontalTranslation;
             updateDistortion(
                 verticalTranslation,
                 absoluteX,
-                IS_WEB
-                    ? downX.value + horizontalTranslation
-                    : null,
+                IS_WEB ? downX.value + horizontalTranslation : null,
             );
             movedDistance.value = Math.max(
                 movedDistance.value,

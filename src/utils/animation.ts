@@ -86,6 +86,46 @@ const advanceUnderdampedSpring = (
     };
 };
 
+const advanceOverdampedSpring = (
+    displacement: number,
+    velocity: number,
+    target: number,
+    config: SpringConfig,
+    naturalFrequency: number,
+    deltaSeconds: number,
+): SpringStep => {
+    "worklet";
+
+    // Mirror of the underdamped solution with a real damped frequency and
+    // hyperbolic functions, keeping ratios above 1 (overdamped) from
+    // producing NaN via sqrt of a negative number.
+    const dampingFrequency = config.dampingRatio * naturalFrequency;
+    const dampedFrequency =
+        naturalFrequency *
+        Math.sqrt(config.dampingRatio * config.dampingRatio - 1);
+    const decay = Math.exp(-dampingFrequency * deltaSeconds);
+    const angle = dampedFrequency * deltaSeconds;
+    const hyperbolicCosine = Math.cosh(angle);
+    const hyperbolicSine = Math.sinh(angle);
+    const positionCoefficient =
+        (velocity + dampingFrequency * displacement) / dampedFrequency;
+    const velocityCoefficient =
+        (dampingFrequency * velocity + config.stiffness * displacement) /
+        dampedFrequency;
+
+    return {
+        value:
+            target +
+            decay *
+                (displacement * hyperbolicCosine +
+                    positionCoefficient * hyperbolicSine),
+        velocity:
+            decay *
+            (velocity * hyperbolicCosine -
+                velocityCoefficient * hyperbolicSine),
+    };
+};
+
 /**
  * Advances the unit-mass damped spring used by Compose's SpringSpec.
  * The analytical solution stays stable at both 60 Hz and 120 Hz.
@@ -110,6 +150,17 @@ export const advanceSpring = (
             displacement,
             velocity,
             target,
+            naturalFrequency,
+            deltaSeconds,
+        );
+    }
+
+    if (config.dampingRatio > 1) {
+        return advanceOverdampedSpring(
+            displacement,
+            velocity,
+            target,
+            config,
             naturalFrequency,
             deltaSeconds,
         );
