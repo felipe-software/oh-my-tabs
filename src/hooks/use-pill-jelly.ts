@@ -1,182 +1,258 @@
-import { Size } from "@/components/tab-item";
-import { useState } from "react";
+import { PILL_JELLY, TABBAR_LAYOUT } from "@/constants";
+import { useDistortion } from "@/hooks/use-distortion";
+import {
+    getMaxTabIndex,
+    getHorizontalPanelOffset,
+    getTabWidth,
+} from "@/utils/animation";
+import {
+    advancePillJellyFrame,
+    type PillJellyFrameState,
+} from "@/utils/pill-jelly-animation";
 import { usePanGesture } from "react-native-gesture-handler";
-import { PanHandlerData } from "react-native-gesture-handler/lib/typescript/v3/hooks/gestures/pan/PanTypes";
-import { GestureEndEvent } from "react-native-gesture-handler/lib/typescript/v3/types";
 import {
     clamp,
-    Extrapolation,
-    interpolate,
     useAnimatedStyle,
+    useDerivedValue,
     useFrameCallback,
     useSharedValue,
-    withSpring,
 } from "react-native-reanimated";
-import { runOnJS } from "react-native-worklets";
 
-const FRONT_EDGE_SPRING = { mass: 0.32, stiffness: 520, damping: 32 };
-const TRAILING_EDGE_SPRING = { mass: 0.72, stiffness: 230, damping: 21 };
-const SETTLE_SPRING = { mass: 0.48, stiffness: 370, damping: 22 };
-const PRESS_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
-const SQUISH_SPRING = { mass: 0.22, stiffness: 600, damping: 38 };
+export const usePillJelly = (
+    tabCount: number,
+    recording = false,
+    displayScale = 1,
+) => {
+    const geometryScale = displayScale > 0 ? displayScale : 1;
+    const trackInset = TABBAR_LAYOUT.trackInset * geometryScale;
+    const {
+        begin: beginTabbarInteraction,
+        end: endTabbarInteraction,
+        pressedStyle,
+        setTrackWidth: setDistortionTrackWidth,
+        tabbarStyle,
+        update: updateDistortion,
+    } = useDistortion(geometryScale);
+    const trackWidth = useSharedValue(0);
+    const value = useSharedValue(0);
+    const valueVelocity = useSharedValue(0);
+    const targetValue = useSharedValue(0);
 
-const PILL_WIDTH = 96;
-const HALF_WIDTH = PILL_WIDTH / 2;
-const INERTIA_DECAY_PER_MS = 0.015;
-const IDLE_TIMEOUT_MS = 500;
+    const filteredVelocity = useSharedValue(0);
+    const filteredVelocityRate = useSharedValue(0);
 
-const emptySize: Size = {
-    width: 0,
-    height: 0,
-    x: 0,
-    y: 0,
-};
+    const pressProgress = useSharedValue(0);
+    const pressProgressRate = useSharedValue(0);
+    const pressTarget = useSharedValue(0);
 
-export const snapPoint = (
-    value: number,
-    velocity: number,
-    points: ReadonlyArray<number>,
-): number => {
-    "worklet";
-    const point = value + 0.2 * velocity;
-    const deltas = points.map((p) => Math.abs(point - p));
-    const minDelta = Math.min.apply(null, deltas);
-    return points.filter((p) => Math.abs(point - p) === minDelta)[0];
-};
+    const baseScaleX = useSharedValue(1);
+    const baseScaleXRate = useSharedValue(0);
+    const baseScaleY = useSharedValue(1);
+    const baseScaleYRate = useSharedValue(0);
+    const shapeTarget = useSharedValue(1);
 
-export const usePillJelly = () => {
-    const [trackWidth, setTrackWidth] = useState(0);
-    const centerX = useSharedValue(HALF_WIDTH);
-    const leftEdge = useSharedValue(0);
-    const rightEdge = useSharedValue(PILL_WIDTH);
-    const scaleY = useSharedValue(1);
-    const scaleX = useSharedValue(1);
-    const pointerDownY = useSharedValue(0);
-    const [tabSizes, setTabSizes] = useState<Size[]>(
-        new Array(3).fill(0).map((_) => emptySize),
-    );
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const inertiaX = useSharedValue(0);
-    const timeoutId = useSharedValue(-1);
+    const rawPanelOffset = useSharedValue(0);
+    const rawPanelOffsetVelocity = useSharedValue(0);
 
-    const snapPoints = tabSizes.map((tab, i) => tab.width / 2 + tab.x);
+    const isDragging = useSharedValue(0);
+    const releasePending = useSharedValue(0);
+    const downX = useSharedValue(0);
+    const movedDistance = useSharedValue(0);
+    const dragStartTarget = useSharedValue(0);
+    const dragStartPanelOffset = useSharedValue(0);
 
-    const moveTo = (x: number, velocityX: number) => {
+    const frameState: PillJellyFrameState = {
+        baseScaleX,
+        baseScaleXRate,
+        baseScaleY,
+        baseScaleYRate,
+        filteredVelocity,
+        filteredVelocityRate,
+        isDragging,
+        pressProgress,
+        pressProgressRate,
+        pressTarget,
+        rawPanelOffset,
+        rawPanelOffsetVelocity,
+        releasePending,
+        shapeTarget,
+        targetValue,
+        value,
+        valueVelocity,
+    };
+
+    useFrameCallback(({ timeSincePreviousFrame }) => {
         "worklet";
-        const clamped = clamp(x, HALF_WIDTH, trackWidth - HALF_WIDTH);
-        const movingRight = clamped >= centerX.value;
 
-        const speed = Math.abs(velocityX);
-        inertiaX.value = Math.max(
-            inertiaX.value,
-            interpolate(speed, [0, 1200], [0, 2], Extrapolation.CLAMP),
+        advancePillJellyFrame(
+            frameState,
+            PILL_JELLY.frameConfig,
+            tabCount,
+            timeSincePreviousFrame,
         );
+    });
 
-        if (movingRight) {
-            rightEdge.value = withSpring(
-                clamped + HALF_WIDTH,
-                FRONT_EDGE_SPRING,
-            );
-            leftEdge.value = withSpring(
-                clamped - HALF_WIDTH,
-                TRAILING_EDGE_SPRING,
-            );
-        } else {
-            leftEdge.value = withSpring(
-                clamped - HALF_WIDTH,
-                FRONT_EDGE_SPRING,
-            );
-            rightEdge.value = withSpring(
-                clamped + HALF_WIDTH,
-                TRAILING_EDGE_SPRING,
-            );
-        }
-        centerX.value = clamped;
-    };
+    const panelOffset = useDerivedValue(() => {
+        return getHorizontalPanelOffset(
+            rawPanelOffset.value,
+            trackWidth.value,
+            geometryScale,
+        );
+    });
 
-    const end = (e: GestureEndEvent<PanHandlerData>) => {
-        "worklet";
-        const snap = snapPoint(centerX.value, 0, snapPoints);
-        const snapIndex = snapPoints.indexOf(snap);
+    const surfaceStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: panelOffset.value }],
+    }));
 
-        leftEdge.value = withSpring(snap - HALF_WIDTH, SETTLE_SPRING);
-        rightEdge.value = withSpring(snap + HALF_WIDTH, SETTLE_SPRING);
-        centerX.value = snap;
-        // scaleY.value = withSpring(1, SETTLE_SPRING);
-        scaleX.value = withSpring(1, SETTLE_SPRING);
-        runOnJS(setCurrentIndex)(snapIndex ?? 0);
-    };
+    const panelStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: panelOffset.value }],
+    }));
 
-    const pillStyle = useAnimatedStyle(() => {
-        const width = rightEdge.value - leftEdge.value;
-        const centerOffset =
-            (leftEdge.value + rightEdge.value) / 2 - HALF_WIDTH;
+    const pillMaskStyle = useAnimatedStyle(() => {
+        const tabWidth = getTabWidth(
+            trackWidth.value,
+            trackInset,
+            tabCount,
+        );
+        const velocity = filteredVelocity.value / 10;
+        const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
+        const scaleYCorrection = clamp(velocity * 0.25, -0.2, 0.2);
+
         return {
+            width: tabWidth,
             transform: [
-                { translateX: centerOffset },
-                { scaleX: (width / PILL_WIDTH) * scaleX.value },
-                { scaleY: scaleY.value },
+                { translateX: value.value * tabWidth },
+                { scaleX: baseScaleX.value / (1 - scaleXCorrection) },
+                { scaleY: baseScaleY.value * (1 - scaleYCorrection) },
             ],
         };
     });
 
-    const updateTabSize = (index: number, newValue: Size) => {
-        setTabSizes((oldValue) => {
-            const copy = [...oldValue];
-            copy[index] = newValue;
-            return copy;
-        });
-    };
-
-    const activateFrame = () => {
-        frameCallback.setActive(true);
-    };
-
-    const deactivateFrame = () => {
-        frameCallback.setActive(false);
-    };
-
-    const frameCallback = useFrameCallback((frameInfo) => {
-        const dt = frameInfo.timeSincePreviousFrame ?? 16.6;
-        const inertia = clamp(inertiaX.value - dt * INERTIA_DECAY_PER_MS, 0, 1);
-        inertiaX.value = inertia;
-        const baseValue = interpolate(pointerDownY.value, [0, 1], [0, 0.1]);
-
-        scaleY.value = withSpring(1 + baseValue - inertia * 0.3, SQUISH_SPRING);
-    }, false);
-
-    const gesture = usePanGesture({
-        onBegin: () => {
-            if (timeoutId.value !== -1) {
-                clearTimeout(timeoutId.value);
-                timeoutId.value = -1;
-            }
-            runOnJS(activateFrame)();
-        },
-        onTouchesDown: (e) => {
-            inertiaX.value = 99;
-            pointerDownY.value = 1;
-            scaleX.value = withSpring(1.12, PRESS_SPRING);
-            const touchX = e.allTouches[0].x;
-            const clamped = clamp(touchX, HALF_WIDTH, trackWidth - HALF_WIDTH);
-            leftEdge.value = withSpring(clamped - HALF_WIDTH, PRESS_SPRING);
-            rightEdge.value = withSpring(clamped + HALF_WIDTH, PRESS_SPRING);
-            centerX.value = clamped;
-        },
-        onTouchesUp: (e) => {
-            pointerDownY.value = 0;
-        },
-        onUpdate: (e) => {
-            moveTo(e.x, e.velocityX);
-        },
-        onFinalize: (e) => {
-            end(e);
-            timeoutId.value = setTimeout(() => {
-                runOnJS(deactivateFrame)();
-                timeoutId.value = -1;
-            }, IDLE_TIMEOUT_MS);
-        },
+    const activeItemStyle = useAnimatedStyle(() => {
+        const scale = 1 + 0.2 * pressProgress.value;
+        return { transform: [{ scaleX: scale }, { scaleY: scale }] };
     });
 
-    return { currentIndex, gesture, setTrackWidth, updateTabSize, pillStyle };
+    const finishGesture = () => {
+        "worklet";
+
+        isDragging.value = 0;
+        rawPanelOffsetVelocity.value = 0;
+        endTabbarInteraction();
+
+        const tabWidth = getTabWidth(
+            trackWidth.value,
+            trackInset,
+            tabCount,
+        );
+        let nextIndex: number;
+
+        if (movedDistance.value < 4 && tabWidth > 0) {
+            // A stationary gesture is a regular tab click. A moving gesture
+            // remains relative, so every point of the bar acts as a handle.
+            nextIndex = Math.floor((downX.value - trackInset) / tabWidth);
+        } else {
+            nextIndex = Math.round(targetValue.value);
+        }
+
+        nextIndex = clamp(nextIndex, 0, getMaxTabIndex(tabCount));
+        targetValue.value = nextIndex;
+        releasePending.value = 1;
+    };
+
+    const gesture = usePanGesture({
+        minDistance: 0,
+        maxPointers: 1,
+        shouldCancelWhenOutside: false,
+        onTouchesDown: (event) => {
+            const firstTouch =
+                event.changedTouches[0] ?? event.allTouches[0];
+            if (!firstTouch) {
+                return;
+            }
+
+            const localX = recording ? firstTouch.y : firstTouch.x;
+            const absoluteX = recording
+                ? firstTouch.absoluteY
+                : firstTouch.absoluteX;
+
+            beginTabbarInteraction(localX, absoluteX);
+            downX.value = localX;
+            movedDistance.value = 0;
+
+            const tabWidth = getTabWidth(
+                trackWidth.value,
+                trackInset,
+                tabCount,
+            );
+            if (PILL_JELLY.snapOnPointerDown && tabWidth > 0) {
+                targetValue.value = clamp(
+                    Math.floor((localX - trackInset) / tabWidth),
+                    0,
+                    getMaxTabIndex(tabCount),
+                );
+            }
+
+            dragStartTarget.value = targetValue.value;
+            dragStartPanelOffset.value = rawPanelOffset.value;
+            isDragging.value = 1;
+            releasePending.value = 0;
+            pressTarget.value = 1;
+            shapeTarget.value = PILL_JELLY.pressedScale;
+            rawPanelOffsetVelocity.value = 0;
+        },
+        onUpdate: (event) => {
+            const tabWidth = getTabWidth(
+                trackWidth.value,
+                trackInset,
+                tabCount,
+            );
+            if (tabWidth <= 0) {
+                return;
+            }
+
+            const horizontalTranslation = recording
+                ? event.translationY
+                : event.translationX;
+            const verticalTranslation = recording
+                ? -event.translationX
+                : event.translationY;
+
+            targetValue.value = clamp(
+                dragStartTarget.value +
+                    horizontalTranslation / tabWidth,
+                0,
+                getMaxTabIndex(tabCount),
+            );
+            const absoluteX = recording
+                ? event.absoluteY
+                : event.absoluteX;
+
+            rawPanelOffset.value =
+                dragStartPanelOffset.value + horizontalTranslation;
+            updateDistortion(verticalTranslation, absoluteX);
+            movedDistance.value = Math.max(
+                movedDistance.value,
+                Math.abs(horizontalTranslation),
+                Math.abs(verticalTranslation),
+            );
+        },
+        onFinalize: finishGesture,
+    });
+
+    const setTrackWidth = (width: number) => {
+        trackWidth.value = width;
+        setDistortionTrackWidth(width);
+    };
+
+    return {
+        activeItemStyle,
+        gesture,
+        panelStyle,
+        pillMaskStyle,
+        pressedStyle,
+        setTrackWidth,
+        surfaceStyle,
+        tabbarStyle,
+    };
 };

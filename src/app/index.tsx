@@ -1,13 +1,59 @@
 import { Tabs } from "@/components/tabs";
-import { StyleSheet } from "react-native";
+import { TABBAR_LAYOUT } from "@/constants";
+import { NavigationBar } from "expo-navigation-bar";
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const RECORDING_MODE =
+    process.env.EXPO_PUBLIC_RECORDING_MODE === "1" ||
+    process.env.EXPO_PUBLIC_RECORDING_MODE === "true";
+const HORIZONTAL_PADDING = 16;
 
 export default function HomeScreen() {
+    const { height, width } = useWindowDimensions();
+    const defaultTrackWidth = Math.max(
+        0,
+        width - HORIZONTAL_PADDING * 2,
+    );
+    const recordingScale =
+        defaultTrackWidth > 0
+            ? Math.min(
+                  height / defaultTrackWidth,
+                  width / TABBAR_LAYOUT.trackHeight,
+              )
+            : 1;
+
     return (
-        <SafeAreaView edges={["bottom"]} style={styles.screen}>
-            <Tabs />
-        </SafeAreaView>
+        <>
+            <StatusBar hidden={RECORDING_MODE} />
+            <NavigationBar hidden={RECORDING_MODE} />
+            <SafeAreaView
+                edges={RECORDING_MODE ? [] : ["bottom"]}
+                style={[
+                    styles.screen,
+                    RECORDING_MODE && styles.recordingScreen,
+                ]}
+            >
+                <View
+                    style={[
+                        styles.tabsContainer,
+                        RECORDING_MODE && {
+                            height:
+                                TABBAR_LAYOUT.trackHeight *
+                                recordingScale,
+                            width: defaultTrackWidth * recordingScale,
+                            transform: [{ rotate: "90deg" }],
+                        },
+                    ]}
+                >
+                    <Tabs
+                        displayScale={RECORDING_MODE ? recordingScale : 1}
+                        recording={RECORDING_MODE}
+                    />
+                </View>
+            </SafeAreaView>
+        </>
     );
 }
 
@@ -15,7 +61,16 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         justifyContent: "flex-end",
-        paddingHorizontal: 16,
-        alignItems: "center"
-    }
+        paddingHorizontal: HORIZONTAL_PADDING,
+        alignItems: "center",
+    },
+    recordingScreen: {
+        justifyContent: "center",
+        paddingHorizontal: 0,
+        overflow: "hidden",
+    },
+    tabsContainer: {
+        width: "100%",
+        height: TABBAR_LAYOUT.trackHeight,
+    },
 });

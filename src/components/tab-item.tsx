@@ -1,58 +1,73 @@
+import { TABBAR_LAYOUT } from "@/constants";
 import { cloneElement, ReactElement } from "react";
-import { Pressable, Text, View } from "react-native";
-import Animated from "react-native-reanimated";
-
-export interface Size {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import Animated, { AnimatedStyle } from "react-native-reanimated";
 
 export interface TabItemProps {
+    displayScale?: number;
     icon: ReactElement;
     text: string;
-    onMeasure?: (s: Size) => void;
     isActive?: boolean;
+    animatedStyle?: StyleProp<AnimatedStyle<ViewStyle>>;
 }
 
-export const TabItem = ({ icon, text, onMeasure, isActive = false }: TabItemProps) => {
-    const activeColor = "#000000"
+export const TabItem = ({
+    displayScale = 1,
+    icon,
+    text,
+    isActive = false,
+    animatedStyle,
+}: TabItemProps) => {
+    const color = isActive ? "#000000" : "#afafaf";
+
     return (
         <Animated.View
-            style={{ flex: 1, maxWidth: 96, zIndex: 1 }}
-            onLayout={(e) => {
-                e.target.measure((x, y, width, height) => {
-                    onMeasure?.({ x, y, width, height });
-                });
-            }}
+            style={[
+                styles.item,
+                {
+                    height:
+                        TABBAR_LAYOUT.itemHeight * displayScale,
+                },
+                animatedStyle,
+            ]}
         >
-            <Pressable
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                }}
-            >
+            <View style={[styles.content]}>
                 <View
-                    style={{ transform: [{ scale: 1.1 }, { translateY: 2 }] }}
+                    style={{
+                        transform: [{ translateY: 2 * displayScale }],
+                    }}
                 >
                     {cloneElement(icon as ReactElement<any>, {
-                        color: isActive ? activeColor : "#888",
-                        weight: isActive ? "fill" : "duotone",
+                        color,
                     })}
                 </View>
                 <Text
-                    style={{
-                        fontSize: 14,
-                        transform: [{ translateY: 2 }],
-                        color: isActive ? activeColor : "#888",
-                        fontWeight: isActive ? "700" : "400",
-                    }}
+                    style={[
+                        {
+                            color,
+                            fontSize: 13 * displayScale,
+                            fontWeight: isActive ? "700" : "400",
+                            // transform: [
+                            //     { translateY: -4 * displayScale },
+                            // ],
+                        },
+                    ]}
                 >
                     {text}
                 </Text>
-            </Pressable>
+            </View>
         </Animated.View>
     );
 };
+
+const styles = StyleSheet.create({
+    item: {
+        flex: 1,
+        zIndex: 1,
+    },
+    content: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+});
