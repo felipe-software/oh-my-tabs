@@ -9,8 +9,8 @@ Every adjustable parameter of `<JellyTabBarHeadless />`, taken straight from the
 | `items` | `TabsItem[]` | — | The tabs to render (required). |
 | `maxWidth` | `DimensionValue` | `400` | Maximum track width. The bar stays centered inside wider parents. |
 | `selectedIndex` | `number \| null` | uncontrolled | Controlled selected index. External changes animate the pill to the matching item. Pass `null` or a negative index to render no selected pill. |
-| `onTabPress` | `(event: TabsChangeEvent) => void` | — | Runs after every completed tap or drag, including the already selected tab. |
-| `onTabChange` | `(event: TabsChangeEvent) => void` | — | Runs on the JS thread after the gesture finishes and the selected tab actually changes. Tapping the already selected tab does not emit it. |
+| `onTabPress` | `(event: TabsChangeEvent) => boolean \| void` | — | Runs after every completed tap or drag, including the already selected tab. Return `false` to reject the change and restore the current selection. |
+| `onTabChange` | `(event: TabsChangeEvent) => void` | — | Runs after an accepted gesture changes the selected tab. Rejected presses and taps on the already selected tab do not emit it. |
 | `colors` | `Partial<TabBarColors>` | built-in palette | Solid color strings for each layer. See [Colors](#colors). |
 | `opacity` | `Partial<TabBarOpacity>` | all `1` | Per-layer opacity, clamped `0`–`1`. See [Opacity](#opacity). |
 | `config` | `DeepPartial<TabBarConfig>` | see [Config](#config) | Deep-partial override of layout, jelly and distortion. |

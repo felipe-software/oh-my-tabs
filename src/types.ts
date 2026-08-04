@@ -37,7 +37,7 @@ export interface JellyTabBarHeadlessProps {
     recording?: boolean;
     items: readonly TabsItem[];
     onTabChange?: (event: TabsChangeEvent) => void;
-    onTabPress?: (event: TabsChangeEvent) => void;
+    onTabPress?: (event: TabsChangeEvent) => boolean | void;
     opacity?: Partial<TabBarOpacity>;
     selectedIndex?: number | null;
     selectedBackdrop?: ReactNode;

@@ -123,7 +123,7 @@ Use `JellyTabBarHeadless` when you want the animated component without any navig
 />
 ```
 
-Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette). `selectedIndex` is optional; omit it for uncontrolled usage, or pass `null`/a negative index to render no selected pill. The old `JellyTabs` export remains as a deprecated alias for `JellyTabBarHeadless`.
+Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette). `selectedIndex` is optional; omit it for uncontrolled usage, or pass `null`/a negative index to render no selected pill. Return `false` from `onTabPress` to reject a change and restore the current selection; rejected presses do not emit `onTabChange`. The old `JellyTabs` export remains as a deprecated alias for `JellyTabBarHeadless`.
 
 `JellyTabBarHeadless` adds no safe-area inset of its own. Give it a wrapper whose height matches `config.layout.trackHeight` (default `64`) times `displayScale`. The navigation-aware `JellyTabBar` handles the navigator-provided safe-area insets automatically.
 

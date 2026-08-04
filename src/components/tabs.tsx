@@ -94,8 +94,6 @@ export const JellyTabBarHeadless = ({
         (index: number) => {
             const item = items[index];
             if (item) {
-                // JellyTabBar uses the runtime return value to report a
-                // prevented React Navigation tabPress back to the hook.
                 return onTabPress?.({ index, item });
             }
 

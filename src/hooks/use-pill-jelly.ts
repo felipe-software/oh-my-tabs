@@ -237,29 +237,37 @@ export const usePillJelly = (
         return { transform: [{ scaleX: scale }, { scaleY: scale }] };
     });
 
-    const handleTabPressOnJS = useCallback(
+    const confirmTabPressOnJS = useCallback(
         (index: number) => {
             const accepted = onTabPress?.(index);
-            if (accepted !== false || controlledSelectedIndex === undefined) {
+            if (accepted === false) {
+                // The controlled prop will not change after a rejected press,
+                // so its effect will not run again. Restore the pill directly.
+                const fallbackIndex =
+                    controlledSelectedIndex === undefined
+                        ? selectedIndex.value
+                        : getControlledSelectedIndex(
+                              controlledSelectedIndex,
+                              tabCount,
+                          );
+                selectedIndex.value = fallbackIndex;
+                if (fallbackIndex >= 0) {
+                    targetValue.value = fallbackIndex;
+                }
+                releasePending.value = 1;
+                pressTarget.value = 0;
+                shapeTarget.value = 1;
                 return;
             }
 
-            // A prevented navigation leaves the controlled prop unchanged,
-            // so its effect will not run again. Restore the pill explicitly.
-            const controlledIndex = getControlledSelectedIndex(
-                controlledSelectedIndex,
-                tabCount,
-            );
-            selectedIndex.value = controlledIndex;
-            if (controlledIndex >= 0) {
-                targetValue.value = controlledIndex;
+            if (index !== selectedIndex.value) {
+                selectedIndex.value = index;
+                onTabChange?.(index);
             }
-            releasePending.value = 1;
-            pressTarget.value = 0;
-            shapeTarget.value = 1;
         },
         [
             controlledSelectedIndex,
+            onTabChange,
             onTabPress,
             pressTarget,
             releasePending,
@@ -292,15 +300,8 @@ export const usePillJelly = (
         targetValue.value = nextIndex;
         releasePending.value = 1;
 
-        if (tabCount > 0 && onTabPress) {
-            runOnJS(handleTabPressOnJS)(nextIndex);
-        }
-
-        if (tabCount > 0 && nextIndex !== selectedIndex.value) {
-            selectedIndex.value = nextIndex;
-            if (onTabChange) {
-                runOnJS(onTabChange)(nextIndex);
-            }
+        if (tabCount > 0) {
+            runOnJS(confirmTabPressOnJS)(nextIndex);
         }
     };
 
