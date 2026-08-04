@@ -1,18 +1,18 @@
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import { StyleSheet, Text, View } from "react-native";
 
-import { ScreenLayout } from "./ScreenLayout";
+import { ScreenLayout } from "../src/screens/ScreenLayout";
 
-export function SearchScreen() {
+export default function SearchRoute() {
   return (
     <ScreenLayout
-      eyebrow="Página 02"
-      title="Buscar"
-      description="A troca acontece somente quando a Jelly Tabs confirma uma nova aba em onTabChange."
+      eyebrow="Page 02"
+      title="Search"
+      description="Each tap navigates through Expo Router when Jelly Tabs confirms a new tab in onTabChange."
     >
       <View style={styles.searchField}>
         <MaterialIcons color="#625d54" name="search" size={24} />
-        <Text style={styles.placeholder}>Procure alguma coisa</Text>
+        <Text style={styles.placeholder}>Search for something</Text>
       </View>
     </ScreenLayout>
   );

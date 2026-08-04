@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "scheme": "jellytabssimple",
     "ios": {
       "bundleIdentifier": "software.felipe.jellytabssimple"
     },
@@ -12,6 +13,7 @@
       "package": "software.felipe.jellytabssimple"
     },
     "plugins": [
+      "expo-router",
       "@react-native-vector-icons/material-icons"
     ]
   }

@@ -1,13 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { ScreenLayout } from "./ScreenLayout";
+import { ScreenLayout } from "../src/screens/ScreenLayout";
 
-export function ProfileScreen() {
+export default function ProfileRoute() {
   return (
     <ScreenLayout
-      eyebrow="Página 03"
-      title="Perfil"
-      description="A página final deixa visível a integração mais simples possível com a barra."
+      eyebrow="Page 03"
+      title="Profile"
+      description="The last page shows the simplest possible integration with the bar."
     >
       <View style={styles.avatar}>
         <Text style={styles.initials}>JT</Text>

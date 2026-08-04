@@ -1,34 +1,48 @@
-# Exemplo simples
+# Simple example
 
-Aplicativo Expo mínimo com três páginas (`Início`, `Buscar` e `Perfil`) controladas pelo `onTabChange` da `JellyTabs`.
+A minimal Expo app with three pages (`Home`, `Search`, `Profile`) driven by **Expo Router**, using `JellyTabs` as the custom bottom tab bar.
 
-## Executar
+## How it works
 
-Este exemplo consome a biblioteca pelo **build (`dist/`)** através de um symlink do Bun (`bun link`) — sem cópia da raiz e sem tarball. Na primeira vez, a partir da **raiz do repositório**:
+`app/_layout.tsx` renders Expo Router's `<Tabs>` layout with a custom `tabBar`:
+
+```tsx
+<Tabs tabBar={(props) => <JellyTabBar {...props} />}>
+  <Tabs.Screen name="index" />
+  <Tabs.Screen name="search" />
+  <Tabs.Screen name="profile" />
+</Tabs>
+```
+
+`src/JellyTabBar.tsx` renders `JellyTabs` and, on `onTabChange`, calls `navigation.navigate(route.name)` — so the router owns the routes (URLs, deep links, back button) while the bar drives the animation. The item `key`s match the route names.
+
+> Jelly Tabs is uncontrolled: the pill follows taps on the bar. Navigating from somewhere other than the bar (a deep link, hardware back) changes the route but does not move the pill.
+
+## Run
+
+This example consumes the library from its **build (`dist/`)** through a Bun symlink (`bun link`) — no root copy, no tarball. First time, from the **repository root**:
 
 ```sh
 bun install
-bun run build      # gera dist/
-bun link           # registra react-native-jelly-tabs para o link global do Bun
+bun run build      # generate dist/
+bun link           # register react-native-jelly-tabs as a global Bun link
 ```
 
-Depois, dentro de `example-simple/`:
+Then, inside `example-simple/`:
 
 ```sh
-bun install        # resolve o "link:react-native-jelly-tabs" (symlink → dist buildado)
-bun run start      # ou: bun run android / ios / web
+bun install        # resolves "link:react-native-jelly-tabs" (symlink → built dist)
+bun run start      # or: bun run android / ios / web
 ```
 
-## Por que não duplica a biblioteca
+## Why it doesn't duplicate the library
 
-O `package.json` referencia a lib como `"react-native-jelly-tabs": "link:react-native-jelly-tabs"`. O Bun cria um **symlink** para a raiz do repositório em vez de copiar, então o alvo pesa só os arquivos do pacote (o `file:..` copiaria a raiz inteira — `example/`, `references/` — e inflava o store em GBs).
+`package.json` references the library as `"react-native-jelly-tabs": "link:react-native-jelly-tabs"`. Bun creates a **symlink** to the repository root instead of copying, so the target is only the package files (`file:..` would copy the whole root — `example/`, `references/` — inflating the store by gigabytes).
 
-Como o `package.json` da raiz não expõe mais o campo `react-native: ./src`, a resolução cai no `dist/` (o artefato publicado), igual a um consumidor real do npm. Ao alterar a lib, rebuilde:
+Because the root `package.json` no longer exposes a `react-native: ./src` field, resolution falls back to `dist/` (the published artifact), just like a real npm consumer. After changing the library, rebuild:
 
 ```sh
-bun run build      # na raiz — ou `bun run dev` para watch; o symlink reflete na hora
+bun run build      # at the root — or `bun run dev` to watch; the symlink reflects it live
 ```
 
-O exemplo não importa nada de `src/` diretamente: consome apenas o nome público do pacote.
-
-As lacunas encontradas durante a implementação estão em [DOCS-NOTES.md](./DOCS-NOTES.md).
+The example never imports from `src/` directly: it only consumes the public package name.

@@ -1,17 +1,17 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { ScreenLayout } from "./ScreenLayout";
+import { ScreenLayout } from "../src/screens/ScreenLayout";
 
-export function HomeScreen() {
+export default function HomeRoute() {
   return (
     <ScreenLayout
       eyebrow="Jelly Tabs"
-      title="Início"
-      description="Um exemplo mínimo com três páginas e estado local, sem depender de um roteador."
+      title="Home"
+      description="A minimal example with three pages wired to the bar through Expo Router."
     >
       <View style={styles.row}>
         <Text style={styles.number}>03</Text>
-        <Text style={styles.label}>páginas conectadas pela bottom bar</Text>
+        <Text style={styles.label}>pages connected by the bottom bar</Text>
       </View>
     </ScreenLayout>
   );
