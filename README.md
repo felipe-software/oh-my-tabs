@@ -33,26 +33,16 @@ With Reanimated 4 also install `react-native-worklets`; with Reanimated 3 you do
 
 ```tsx
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
-import {
-    Tabs,
-    type TabsIcon,
-    type TabsItem,
-} from "react-native-jelly-tabs";
+import { Tabs, type TabsItem } from "react-native-jelly-tabs";
 import { View } from "react-native";
-
-const HomeIcon: TabsIcon = ({ color, isSelected, size }) => (
-    <MaterialIcons
-        color={color}
-        name="home"
-        size={isSelected ? size + 2 : size}
-    />
-);
 
 const items: TabsItem[] = [
     {
         key: "home",
         label: "Home",
-        icon: HomeIcon,
+        icon: ({ color, size }) => (
+            <MaterialIcons color={color} name="home" size={size} />
+        ),
     },
     {
         key: "settings",
@@ -73,42 +63,15 @@ export function BottomTabs({
             <Tabs
                 items={items}
                 onTabChange={({ item }) => onNavigate(item.key)}
-                colors={{
-                    surface: "#22211F",
-                    selectedSurface: "#F2EEE7",
-                    activeContent: "#11100F",
-                    inactiveContent: "#B8B4AD",
-                }}
-                opacity={{
-                    surface: 0.78,
-                    selectedSurface: 0.86,
-                }}
-                config={{
-                    layout: { trackHeight: 68 },
-                    pillJelly: { pressedScale: 1.25 },
-                    distortion: {
-                        verticalDrag: { distortion: 0.1 },
-                    },
-                }}
             />
         </View>
     );
 }
 ```
 
-Each item's `icon` is a render function. It receives the resolved `color`, `size`, `opacity`, full `colors` palette, `isSelected`, and `isMasked`, so an icon can use a different glyph or structure for the selected layer instead of relying on element cloning.
+Each item's `icon` is a render function that receives `color`, `size`, `isSelected` and more. `onTabChange` fires when the selected tab actually changes.
 
-`onTabChange` runs on the JavaScript thread after the gesture finishes and the selected tab actually changes. Its event contains both `index` and the original `item`; tapping the already selected tab does not emit it.
-
-`colors` accepts solid React Native color strings for the track, selected pill, active content, and inactive content. Partial color objects fall back to the built-in palette.
-
-`opacity` controls those same four layers independently and is clamped from `0` to `1`. Opacity is applied to the rendered content rather than the mask, so the animated pill keeps a fully opaque clipping shape.
-
-Every value from `TABBAR_LAYOUT`, `PILL_JELLY`, and `DISTORTION` can be overridden through the deep-partial `config` prop. `resolveTabBarConfig()` is exported when a consumer needs a complete mutable configuration object.
-
-`backdrop` and `selectedBackdrop` accept React nodes rendered below the track and selected-pill color layers. This keeps blur provider-agnostic: the Expo example uses `expo-blur`, while other apps can inject their platform blur component.
-
-The touch feedback color follows `colors.selectedSurface` by default. Set `touchFeedbackColor` to override it independently.
+Colors, opacity, layout, jelly springs, distortion, backdrops and touch feedback are all configurable. See **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** for every prop and config value.
 
 ## Development
 
