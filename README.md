@@ -19,7 +19,7 @@ The package expects Gesture Handler and Reanimated to be configured in the consu
 ## Usage
 
 ```tsx
-import { MaterialIcons } from "@react-native-vector-icons/material-icons/static";
+import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import { Tabs, type TabsItem } from "oh-my-tabs";
 import { View } from "react-native";
 

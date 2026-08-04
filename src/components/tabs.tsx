@@ -6,7 +6,7 @@ import {
     type TabBarColors,
 } from "../constants";
 import { usePillJelly } from "../hooks/use-pill-jelly";
-import MaskedView from "@react-native-masked-view/masked-view";
+import { PillMaskedView } from "./pill-masked-view";
 import { cloneElement, type ReactElement } from "react";
 import {
     StyleProp,
@@ -51,28 +51,6 @@ interface TouchFeedbackProps {
     offsetY?: number;
     radius: number;
 }
-
-interface PillMaskProps {
-    animatedStyle: StyleProp<AnimatedStyle<ViewStyle>>;
-    height: number;
-    left: number;
-    top: number;
-}
-
-const PillMask = ({
-    animatedStyle,
-    height,
-    left,
-    top,
-}: PillMaskProps) => (
-    <Animated.View
-        style={[
-            styles.pillMask,
-            { height, left, top },
-            animatedStyle,
-        ]}
-    />
-);
 
 const TouchFeedback = ({
     animatedStyle,
@@ -185,9 +163,11 @@ export const Tabs = ({
     const tabCount = tabs.length;
     const {
         activeItemStyle,
+        activePillClipStyle,
         activePillMaskStyle,
         gesture,
         panelStyle,
+        pillClipStyle,
         pillMaskStyle,
         pressedStyle,
         selectedTouchFeedbackStyle,
@@ -285,20 +265,12 @@ export const Tabs = ({
                                 },
                             ]}
                         >
-                            <MaskedView
-                                style={StyleSheet.absoluteFill}
-                                maskElement={
-                                    <PillMask
-                                        animatedStyle={pillMaskStyle}
-                                        height={itemHeight}
-                                        left={
-                                            maskOverscanX + trackInset
-                                        }
-                                        top={
-                                            maskOverscanY + trackInset
-                                        }
-                                    />
-                                }
+                            <PillMaskedView
+                                animatedStyle={pillMaskStyle}
+                                clipStyle={pillClipStyle}
+                                height={itemHeight}
+                                left={maskOverscanX + trackInset}
+                                top={maskOverscanY + trackInset}
                             >
                                 <View
                                     style={[
@@ -329,24 +301,14 @@ export const Tabs = ({
                                         radius={touchFeedbackRadius}
                                     />
                                 )}
-                            </MaskedView>
+                            </PillMaskedView>
 
-                            <MaskedView
-                                style={StyleSheet.absoluteFill}
-                                maskElement={
-                                    <PillMask
-                                        animatedStyle={
-                                            activePillMaskStyle
-                                        }
-                                        height={itemHeight}
-                                        left={
-                                            maskOverscanX + trackInset
-                                        }
-                                        top={
-                                            maskOverscanY + trackInset
-                                        }
-                                    />
-                                }
+                            <PillMaskedView
+                                animatedStyle={activePillMaskStyle}
+                                clipStyle={activePillClipStyle}
+                                height={itemHeight}
+                                left={maskOverscanX + trackInset}
+                                top={maskOverscanY + trackInset}
                             >
                                 <View
                                     style={[
@@ -374,7 +336,7 @@ export const Tabs = ({
                                         }),
                                     )}
                                 </View>
-                            </MaskedView>
+                            </PillMaskedView>
                         </View>
                     </Animated.View>
                 </Animated.View>
@@ -431,11 +393,6 @@ const styles = StyleSheet.create({
     maskOverscan: {
         position: "absolute",
         zIndex: 2,
-    },
-    pillMask: {
-        position: "absolute",
-        backgroundColor: "#000000",
-        borderRadius: 999,
     },
     selectedSurface: {
         position: "absolute",

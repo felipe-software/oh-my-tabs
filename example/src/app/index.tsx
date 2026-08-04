@@ -2,7 +2,7 @@ import { ColorCustomizer } from "@/components/color-customizer";
 import { Image } from "expo-image";
 import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
-import { MaterialIcons } from "@react-native-vector-icons/material-icons/static";
+import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import {
     DEFAULT_TAB_BAR_COLORS,
     TABBAR_LAYOUT,
