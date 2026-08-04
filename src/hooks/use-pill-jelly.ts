@@ -10,7 +10,7 @@ import {
 
 const TAB_COUNT = 4;
 const TRACK_INSET = 4;
-const PRESSED_SCALE = 78 / 56;
+const PRESSED_SCALE = 1.3;
 const SNAP_ON_POINTER_DOWN = true;
 
 /**

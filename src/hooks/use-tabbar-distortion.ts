@@ -12,7 +12,7 @@ const TABBAR_PRESSED_SCALE = 1.025;
 const VERTICAL_DRAG = {
     distortion: 0.08, // 0..1
     // distortion: 0.12, // 0..1
-    distanceForMaxDistortion: 500,
+    distanceForMaxDistortion: 700,
 
     // Movement only: these change how much the tabbar follows the finger,
     // without changing its width distortion.
