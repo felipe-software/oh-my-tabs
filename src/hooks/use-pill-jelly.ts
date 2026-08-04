@@ -1,11 +1,12 @@
+import { PILL_JELLY, TABBAR_LAYOUT } from "@/constants";
 import { useDistortion } from "@/hooks/use-distortion";
 import {
+    getMaxTabIndex,
     getHorizontalPanelOffset,
     getTabWidth,
 } from "@/utils/animation";
 import {
     advancePillJellyFrame,
-    type PillJellyFrameConfig,
     type PillJellyFrameState,
 } from "@/utils/pill-jelly-animation";
 import { usePanGesture } from "react-native-gesture-handler";
@@ -17,32 +18,13 @@ import {
     useSharedValue,
 } from "react-native-reanimated";
 
-const TAB_COUNT = 4;
-const TRACK_INSET = 4;
-const PRESSED_SCALE = 1.3;
-const SNAP_ON_POINTER_DOWN = true;
-
-/**
- * These are the exact stiffness/damping-ratio pairs used by
- * AndroidLiquidGlass' DampedDragAnimation.
- */
-const FRAME_CONFIG = {
-    // Keep the indicator inflated until it is within 2.5% of its snap point.
-    releaseDistanceFraction: 0.025,
-    springs: {
-        panel: { stiffness: 300, dampingRatio: 1 },
-        press: { stiffness: 1_000, dampingRatio: 1 },
-        scaleX: { stiffness: 250, dampingRatio: 0.6 },
-        scaleY: { stiffness: 250, dampingRatio: 0.7 },
-        value: { stiffness: 1_000, dampingRatio: 1 },
-        velocity: { stiffness: 300, dampingRatio: 0.5 },
-    },
-    tabCount: TAB_COUNT,
-} as const satisfies PillJellyFrameConfig;
-
-export const usePillJelly = (recording = false, displayScale = 1) => {
+export const usePillJelly = (
+    tabCount: number,
+    recording = false,
+    displayScale = 1,
+) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
-    const trackInset = TRACK_INSET * geometryScale;
+    const trackInset = TABBAR_LAYOUT.trackInset * geometryScale;
     const {
         begin: beginTabbarInteraction,
         end: endTabbarInteraction,
@@ -104,7 +86,8 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
 
         advancePillJellyFrame(
             frameState,
-            FRAME_CONFIG,
+            PILL_JELLY.frameConfig,
+            tabCount,
             timeSincePreviousFrame,
         );
     });
@@ -129,7 +112,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
         const tabWidth = getTabWidth(
             trackWidth.value,
             trackInset,
-            TAB_COUNT,
+            tabCount,
         );
         const velocity = filteredVelocity.value / 10;
         const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
@@ -160,7 +143,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
         const tabWidth = getTabWidth(
             trackWidth.value,
             trackInset,
-            TAB_COUNT,
+            tabCount,
         );
         let nextIndex: number;
 
@@ -172,7 +155,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
             nextIndex = Math.round(targetValue.value);
         }
 
-        nextIndex = clamp(nextIndex, 0, TAB_COUNT - 1);
+        nextIndex = clamp(nextIndex, 0, getMaxTabIndex(tabCount));
         targetValue.value = nextIndex;
         releasePending.value = 1;
     };
@@ -200,13 +183,13 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
             const tabWidth = getTabWidth(
                 trackWidth.value,
                 trackInset,
-                TAB_COUNT,
+                tabCount,
             );
-            if (SNAP_ON_POINTER_DOWN && tabWidth > 0) {
+            if (PILL_JELLY.snapOnPointerDown && tabWidth > 0) {
                 targetValue.value = clamp(
                     Math.floor((localX - trackInset) / tabWidth),
                     0,
-                    TAB_COUNT - 1,
+                    getMaxTabIndex(tabCount),
                 );
             }
 
@@ -215,14 +198,14 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
             isDragging.value = 1;
             releasePending.value = 0;
             pressTarget.value = 1;
-            shapeTarget.value = PRESSED_SCALE;
+            shapeTarget.value = PILL_JELLY.pressedScale;
             rawPanelOffsetVelocity.value = 0;
         },
         onUpdate: (event) => {
             const tabWidth = getTabWidth(
                 trackWidth.value,
                 trackInset,
-                TAB_COUNT,
+                tabCount,
             );
             if (tabWidth <= 0) {
                 return;
@@ -239,7 +222,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
                 dragStartTarget.value +
                     horizontalTranslation / tabWidth,
                 0,
-                TAB_COUNT - 1,
+                getMaxTabIndex(tabCount),
             );
             const absoluteX = recording
                 ? event.absoluteY

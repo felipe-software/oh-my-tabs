@@ -1,4 +1,5 @@
 import { Tabs } from "@/components/tabs";
+import { TABBAR_LAYOUT } from "@/constants";
 import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
@@ -8,7 +9,6 @@ const RECORDING_MODE =
     process.env.EXPO_PUBLIC_RECORDING_MODE === "1" ||
     process.env.EXPO_PUBLIC_RECORDING_MODE === "true";
 const HORIZONTAL_PADDING = 16;
-const DEFAULT_TRACK_HEIGHT = 64;
 
 export default function HomeScreen() {
     const { height, width } = useWindowDimensions();
@@ -20,7 +20,7 @@ export default function HomeScreen() {
         defaultTrackWidth > 0
             ? Math.min(
                   height / defaultTrackWidth,
-                  width / DEFAULT_TRACK_HEIGHT,
+                  width / TABBAR_LAYOUT.trackHeight,
               )
             : 1;
 
@@ -40,7 +40,8 @@ export default function HomeScreen() {
                         styles.tabsContainer,
                         RECORDING_MODE && {
                             height:
-                                DEFAULT_TRACK_HEIGHT * recordingScale,
+                                TABBAR_LAYOUT.trackHeight *
+                                recordingScale,
                             width: defaultTrackWidth * recordingScale,
                             transform: [{ rotate: "90deg" }],
                         },
@@ -70,6 +71,6 @@ const styles = StyleSheet.create({
     },
     tabsContainer: {
         width: "100%",
-        height: DEFAULT_TRACK_HEIGHT,
+        height: TABBAR_LAYOUT.trackHeight,
     },
 });

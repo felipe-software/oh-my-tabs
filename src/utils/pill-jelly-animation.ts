@@ -1,6 +1,7 @@
 import {
     advanceSharedSpring,
     getFrameDeltaSeconds,
+    getMaxTabIndex,
     type SpringConfig,
 } from "@/utils/animation";
 import type { SharedValue } from "react-native-reanimated";
@@ -37,7 +38,6 @@ export interface PillJellyFrameConfig {
         value: SpringConfig;
         velocity: SpringConfig;
     };
-    tabCount: number;
 }
 
 const advancePosition = (
@@ -56,16 +56,30 @@ const advancePosition = (
     );
 };
 
+const clampTargetValue = (
+    state: PillJellyFrameState,
+    tabCount: number,
+) => {
+    "worklet";
+
+    state.targetValue.value = Math.min(
+        Math.max(state.targetValue.value, 0),
+        getMaxTabIndex(tabCount),
+    );
+};
+
 const advanceFilteredVelocity = (
     state: PillJellyFrameState,
     config: PillJellyFrameConfig,
+    tabCount: number,
     deltaSeconds: number,
 ) => {
     "worklet";
 
+    const maxTabIndex = getMaxTabIndex(tabCount);
     const target =
-        state.isDragging.value === 1
-            ? state.valueVelocity.value / (config.tabCount - 1)
+        state.isDragging.value === 1 && maxTabIndex > 0
+            ? state.valueVelocity.value / maxTabIndex
             : 0;
 
     advanceSharedSpring(
@@ -100,6 +114,7 @@ const advancePanelReturn = (
 const settleReleasedIndicator = (
     state: PillJellyFrameState,
     config: PillJellyFrameConfig,
+    tabCount: number,
 ) => {
     "worklet";
 
@@ -108,7 +123,8 @@ const settleReleasedIndicator = (
     }
 
     const releaseDistance =
-        (config.tabCount - 1) * config.releaseDistanceFraction;
+        Math.max(1, getMaxTabIndex(tabCount)) *
+        config.releaseDistanceFraction;
     if (
         Math.abs(state.value.value - state.targetValue.value) >=
         releaseDistance
@@ -164,6 +180,7 @@ const advanceShape = (
 export const advancePillJellyFrame = (
     state: PillJellyFrameState,
     config: PillJellyFrameConfig,
+    tabCount: number,
     timeSincePreviousFrame: number | null,
 ) => {
     "worklet";
@@ -173,10 +190,11 @@ export const advancePillJellyFrame = (
         return;
     }
 
+    clampTargetValue(state, tabCount);
     advancePosition(state, config, deltaSeconds);
-    advanceFilteredVelocity(state, config, deltaSeconds);
+    advanceFilteredVelocity(state, config, tabCount, deltaSeconds);
     advancePanelReturn(state, config, deltaSeconds);
-    settleReleasedIndicator(state, config);
+    settleReleasedIndicator(state, config, tabCount);
     advancePress(state, config, deltaSeconds);
     advanceShape(state, config, deltaSeconds);
 };

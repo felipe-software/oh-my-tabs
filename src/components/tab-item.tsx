@@ -1,3 +1,4 @@
+import { TABBAR_LAYOUT } from "@/constants";
 import { cloneElement, ReactElement } from "react";
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import Animated, { AnimatedStyle } from "react-native-reanimated";
@@ -23,7 +24,10 @@ export const TabItem = ({
         <Animated.View
             style={[
                 styles.item,
-                { height: 56 * displayScale },
+                {
+                    height:
+                        TABBAR_LAYOUT.itemHeight * displayScale,
+                },
                 animatedStyle,
             ]}
         >

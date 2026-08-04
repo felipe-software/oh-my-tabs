@@ -236,7 +236,17 @@ export const getTabWidth = (
 ) => {
     "worklet";
 
+    if (tabCount <= 0) {
+        return 0;
+    }
+
     return Math.max(0, (trackWidth - trackInset * 2) / tabCount);
+};
+
+export const getMaxTabIndex = (tabCount: number) => {
+    "worklet";
+
+    return Math.max(0, tabCount - 1);
 };
 
 export const rubberBand = (
