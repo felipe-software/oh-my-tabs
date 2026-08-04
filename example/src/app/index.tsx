@@ -9,7 +9,7 @@ import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import {
-    Tabs,
+    JellyTabs,
     resolveTabBarConfig,
     type TabBarConfig,
     type TabBarColors,
@@ -59,34 +59,35 @@ const INITIAL_COLORS: TabBarColors = {
 const INITIAL_TOUCH_FEEDBACK_COLOR = INITIAL_COLORS.selectedSurface;
 const INITIAL_OPACITY: TabBarOpacity = { ...THEME_OPACITY };
 
+const materialIcon =
+    (name: React.ComponentProps<typeof MaterialIcons>["name"]): TabsItem["activeIcon"] =>
+    ({ color, size }) =>
+        <MaterialIcons color={color} name={name} size={size} />;
+
 const ITEMS: TabsItem[] = [
     {
-        icon: ({ color, size }) => (
-            <MaterialIcons color={color} name="home" size={size} />
-        ),
         key: "home",
         label: "Home",
+        activeIcon: materialIcon("home"),
+        inactiveIcon: materialIcon("home"),
     },
     {
-        icon: ({ color, size }) => (
-            <MaterialIcons color={color} name="photo-camera" size={size} />
-        ),
         key: "camera",
         label: "Camera",
+        activeIcon: materialIcon("photo-camera"),
+        inactiveIcon: materialIcon("photo-camera"),
     },
     {
-        icon: ({ color, size }) => (
-            <MaterialIcons color={color} name="settings" size={size} />
-        ),
         key: "settings",
         label: "Settings",
+        activeIcon: materialIcon("settings"),
+        inactiveIcon: materialIcon("settings"),
     },
     {
-        icon: ({ color, size }) => (
-            <MaterialIcons color={color} name="format-paint" size={size} />
-        ),
         key: "walls",
         label: "Walls",
+        activeIcon: materialIcon("format-paint"),
+        inactiveIcon: materialIcon("format-paint"),
     },
 ];
 
@@ -200,7 +201,7 @@ export default function HomeScreen() {
                             },
                         ]}
                     >
-                        <Tabs
+                        <JellyTabs
                             backdrop={
                                 <BlurView
                                     blurMethod="dimezisBlurViewSdk31Plus"

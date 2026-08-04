@@ -33,21 +33,27 @@ With Reanimated 4 also install `react-native-worklets`; with Reanimated 3 you do
 
 ```tsx
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
-import { Tabs, type TabsItem } from "react-native-jelly-tabs";
+import { JellyTabs, type TabsItem } from "react-native-jelly-tabs";
 import { View } from "react-native";
 
 const items: TabsItem[] = [
     {
         key: "home",
         label: "Home",
-        icon: ({ color, size }) => (
+        activeIcon: ({ color, size }) => (
+            <MaterialIcons color={color} name="home" size={size} />
+        ),
+        inactiveIcon: ({ color, size }) => (
             <MaterialIcons color={color} name="home" size={size} />
         ),
     },
     {
         key: "settings",
         label: "Settings",
-        icon: ({ color, size }) => (
+        activeIcon: ({ color, size }) => (
+            <MaterialIcons color={color} name="settings" size={size} />
+        ),
+        inactiveIcon: ({ color, size }) => (
             <MaterialIcons color={color} name="settings" size={size} />
         ),
     },
@@ -60,7 +66,7 @@ export function BottomTabs({
 }) {
     return (
         <View style={{ height: 68, width: "100%" }}>
-            <Tabs
+            <JellyTabs
                 items={items}
                 onTabChange={({ item }) => onNavigate(item.key)}
             />
@@ -69,7 +75,7 @@ export function BottomTabs({
 }
 ```
 
-Each item's `icon` is a render function that receives `color`, `size`, `isSelected` and more. `onTabChange` fires when the selected tab actually changes.
+Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette). Jelly Tabs draws the inactive icons in the track and reveals the active ones through the animated pill mask. `onTabChange` fires when the selected tab actually changes.
 
 Colors, opacity, layout, jelly springs, distortion, backdrops and touch feedback are all configurable. See **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** for every prop and config value.
 

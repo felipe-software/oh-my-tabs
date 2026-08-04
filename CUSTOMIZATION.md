@@ -26,7 +26,8 @@ Every adjustable parameter of `<Tabs />`, taken straight from the exported TypeS
 interface TabsItem {
     key: string;
     label: string;
-    icon: TabsIcon;
+    activeIcon: TabsIcon; // shown through the pill mask
+    inactiveIcon: TabsIcon; // shown in the track
 }
 ```
 
@@ -41,7 +42,7 @@ interface TabsChangeEvent {
 
 ## Icons
 
-`icon` is a render function (`TabsIcon`) called with these props, so an icon can pick a different glyph or structure for the selected layer instead of relying on element cloning:
+Each item supplies two render functions (`TabsIcon`): `inactiveIcon` is drawn in the track, and `activeIcon` is revealed through the animated pill mask. Because they are separate components, an icon can use a completely different glyph or structure for the selected state. Both receive:
 
 ```ts
 interface TabsIconProps {
@@ -49,8 +50,6 @@ interface TabsIconProps {
     colors: Readonly<TabBarColors>; // full palette
     size: number; // resolved icon size
     opacity: number; // resolved layer opacity
-    isSelected: boolean;
-    isMasked: boolean; // true for the copy rendered inside the pill mask
 }
 ```
 
