@@ -9,7 +9,7 @@ import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import {
-    JellyTabs,
+    JellyTabBarHeadless,
     resolveTabBarConfig,
     type TabBarConfig,
     type TabBarColors,
@@ -201,7 +201,7 @@ export default function HomeScreen() {
                             },
                         ]}
                     >
-                        <JellyTabs
+                        <JellyTabBarHeadless
                             backdrop={
                                 <BlurView
                                     blurMethod="dimezisBlurViewSdk31Plus"

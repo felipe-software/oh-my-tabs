@@ -4,7 +4,7 @@ import {
     DEFAULT_TAB_BAR_OPACITY,
     resolveTabBarConfig,
 } from "../constants";
-import type { TabsProps } from "../types";
+import type { JellyTabBarHeadlessProps } from "../types";
 import { usePillJelly } from "../hooks/use-pill-jelly";
 import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
@@ -13,21 +13,24 @@ import { Platform, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
-export const JellyTabs = ({
+export const JellyTabBarHeadless = ({
     backdrop,
     colors,
     config,
     displayScale = 1,
     items,
+    maxWidth = 400,
     onTabChange,
+    onTabPress,
     opacity,
     recording = false,
+    selectedIndex,
     selectedBackdrop,
     touchFeedbackColor,
     touchFeedbackEnabled = true,
     touchFeedbackOpacity,
     touchFeedbackScale,
-}: TabsProps) => {
+}: JellyTabBarHeadlessProps) => {
     const trackRef = useRef<View>(null);
     const resolvedConfig = useMemo(() => resolveTabBarConfig(config), [config]);
     const resolvedColors = {
@@ -87,6 +90,15 @@ export const JellyTabs = ({
         },
         [items, onTabChange],
     );
+    const handleTabPress = useCallback(
+        (index: number) => {
+            const item = items[index];
+            if (item) {
+                onTabPress?.({ index, item });
+            }
+        },
+        [items, onTabPress],
+    );
 
     const tabs = items.map((item) => (
         <TabItem
@@ -125,7 +137,9 @@ export const JellyTabs = ({
         recording,
         displayScale,
         touchFeedbackRadius,
+        selectedIndex,
         onTabChange ? handleTabChange : undefined,
+        onTabPress ? handleTabPress : undefined,
     );
 
     return (
@@ -134,7 +148,7 @@ export const JellyTabs = ({
                 collapsable={false}
                 style={[
                     styles.pressWrapper,
-                    { height: trackHeight },
+                    { height: trackHeight, maxWidth },
                     pressedStyle,
                 ]}
             >
@@ -298,8 +312,12 @@ export const JellyTabs = ({
     );
 };
 
+/** @deprecated Use JellyTabBarHeadless instead. */
+export const JellyTabs = JellyTabBarHeadless;
+
 const styles = StyleSheet.create({
     pressWrapper: {
+        alignSelf: "center",
         width: "100%",
         // Stop the label/icon glyphs from being text-selected on web; harmless on native.
         userSelect: "none",
