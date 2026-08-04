@@ -7,6 +7,7 @@ https://github.com/user-attachments/assets/51101532-fdac-44bb-9ad0-e75f9c3b0171
 Demo at: https://jelly.felipe.software/
 
 !! Still under development !!
+This project is kinda focused on Android, but technically you can use it on web and iOS too
 
 ## Install
 
@@ -18,7 +19,7 @@ bun add oh-my-tabs \
   react-native-svg
 ```
 
-The package expects Gesture Handler and Reanimated to be configured in the consuming app.
+The package expects `react-native-gesture-handler` and `react-native-reanimated` to be configured in the consuming app.
 
 ## Usage
 
@@ -96,3 +97,5 @@ bun run typecheck
 bun run example:android
 bun run example:ios
 ```
+
+Don't be afraid to open issues or Pull Requests :)
