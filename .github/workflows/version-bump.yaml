@@ -37,23 +37,34 @@ concurrency:
 jobs:
     bump:
         runs-on: ubuntu-latest
+        environment: npm
 
         outputs:
             released: ${{ steps.outputs.outputs.released }}
             version: ${{ steps.outputs.outputs.version }}
 
         steps:
+            - name: Validate release token
+              env:
+                  RELEASE_TOKEN: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
+              run: |
+                  if [ -z "${RELEASE_TOKEN}" ]; then
+                    echo "::error::SEMANTIC_RELEASE_GH_TOKEN is unavailable in the npm environment"
+                    exit 1
+                  fi
+
             - name: Checkout repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
               with:
                   fetch-depth: 0
-                  token: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
                   persist-credentials: true
+                  token: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
 
             - name: Setup Node
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: 22
+                  package-manager-cache: false
 
             - name: Setup Bun
               uses: oven-sh/setup-bun@v2
@@ -74,7 +85,6 @@ jobs:
             - name: Run semantic-release
               env:
                   GH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
-                  GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
               run: |
                   if [ "${{ inputs.dry_run }}" = "true" ]; then
                     bun run release:dry-run
@@ -86,8 +96,6 @@ jobs:
               id: final-release
               run: |
                   set -euo pipefail
-
-                  git fetch --tags --force
 
                   tag="$(git tag --merged HEAD --list 'v[0-9]*' --sort=-version:refname | sed -n '1p')"
                   echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
