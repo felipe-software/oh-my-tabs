@@ -1,5 +1,6 @@
 import {
     ColorCustomizer,
+    THEME_OPACITY,
     type BlurConfig,
 } from "@/components/color-customizer";
 import { BlurTargetView, BlurView } from "expo-blur";
@@ -8,8 +9,6 @@ import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import {
-    DEFAULT_TAB_BAR_COLORS,
-    DEFAULT_TAB_BAR_OPACITY,
     TABBAR_LAYOUT,
     Tabs,
     resolveTabBarConfig,
@@ -20,9 +19,9 @@ import {
 } from "oh-my-tabs";
 import { useRef, useState } from "react";
 import {
+    Dimensions,
     PixelRatio,
     Platform,
-    Pressable,
     ScrollView,
     StyleSheet,
     useWindowDimensions,
@@ -42,14 +41,24 @@ const randomBackground = (width: number, height: number): ImageSource => ({
         Math.random() * 1_000_000,
     )}`,
 });
-const INITIAL_BLUR: BlurConfig = { pill: 20, track: 35 };
-const INITIAL_TOUCH_FEEDBACK_COLOR = DEFAULT_TAB_BAR_COLORS.selectedSurface;
-const INITIAL_OPACITY: TabBarOpacity = {
-    ...DEFAULT_TAB_BAR_OPACITY,
-    inactiveContent: 0.82,
-    selectedSurface: 0.86,
-    surface: 0.78,
+const randomBackgroundForScreen = (): ImageSource => {
+    const { height, width } = Dimensions.get("window");
+    const scale = PixelRatio.get();
+    return randomBackground(
+        Math.round(width * scale),
+        Math.round(height * scale),
+    );
 };
+const INITIAL_BLUR: BlurConfig = { pill: 20, track: 35 };
+// Default look: same recipe as the "Blue" preset (violet layout, blue pill).
+const INITIAL_COLORS: TabBarColors = {
+    activeContent: "#EFF6FF",
+    inactiveContent: "#A1A1AA",
+    selectedSurface: "#2563EB",
+    surface: "#18181B",
+};
+const INITIAL_TOUCH_FEEDBACK_COLOR = INITIAL_COLORS.selectedSurface;
+const INITIAL_OPACITY: TabBarOpacity = { ...THEME_OPACITY };
 
 const ITEMS: TabsItem[] = [
     {
@@ -82,11 +91,11 @@ export default function HomeScreen() {
     const { height, width } = useWindowDimensions();
     const blurTargetRef = useRef<View>(null);
     const [background, setBackground] = useState<ImageSource | number>(
-        LOCAL_BACKGROUND,
+        randomBackgroundForScreen,
     );
     const [blur, setBlur] = useState<BlurConfig>({ ...INITIAL_BLUR });
     const [colors, setColors] = useState<TabBarColors>({
-        ...DEFAULT_TAB_BAR_COLORS,
+        ...INITIAL_COLORS,
     });
     const [config, setConfig] = useState<TabBarConfig>(() =>
         resolveTabBarConfig(),
@@ -119,7 +128,7 @@ export default function HomeScreen() {
     const resetCustomization = () => {
         setBackground(LOCAL_BACKGROUND);
         setBlur({ ...INITIAL_BLUR });
-        setColors({ ...DEFAULT_TAB_BAR_COLORS });
+        setColors({ ...INITIAL_COLORS });
         setConfig(resolveTabBarConfig());
         setOpacity({ ...INITIAL_OPACITY });
         setTouchFeedbackColor(INITIAL_TOUCH_FEEDBACK_COLOR);
@@ -166,6 +175,7 @@ export default function HomeScreen() {
                                 onConfigChange={setConfig}
                                 onOpacityChange={setOpacity}
                                 onReset={resetCustomization}
+                                onShuffleBackground={shuffleBackground}
                                 onTouchFeedbackColorChange={
                                     setTouchFeedbackColor
                                 }
@@ -216,20 +226,6 @@ export default function HomeScreen() {
                         />
                     </View>
                 </ScrollView>
-
-                {!RECORDING_MODE && (
-                    <Pressable
-                        accessibilityLabel="Shuffle background image"
-                        accessibilityRole="button"
-                        onPress={shuffleBackground}
-                        style={({ pressed }) => [
-                            styles.shuffleButton,
-                            pressed && styles.shuffleButtonPressed,
-                        ]}
-                    >
-                        <MaterialIcons color="#FFFFFF" name="shuffle" size={22} />
-                    </Pressable>
-                )}
             </SafeAreaView>
         </View>
     );
@@ -277,30 +273,6 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         paddingHorizontal: 0,
         paddingTop: 0,
-    },
-    shuffleButton: {
-        alignItems: "center",
-        backgroundColor: "rgba(15, 23, 42, 0.72)",
-        borderColor: "rgba(255, 255, 255, 0.16)",
-        borderRadius: 999,
-        borderWidth: 1,
-        height: 48,
-        justifyContent: "center",
-        position: "absolute",
-        right: 16,
-        top: 16,
-        width: 48,
-        // On web the debug menu is pinned to the top-right, so slide the
-        // shuffle control just to the left of it to avoid overlap.
-        ...Platform.select({
-            web: {
-                right: 392,
-            },
-        }),
-    },
-    shuffleButtonPressed: {
-        opacity: 0.72,
-        transform: [{ scale: 0.96 }],
     },
     tabsContainer: {
         width: "100%",

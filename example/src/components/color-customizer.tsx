@@ -49,9 +49,9 @@ const PALETTES: { colors: TabBarColors; label: string }[] = [
         label: "Blue",
         colors: {
             activeContent: "#EFF6FF",
-            inactiveContent: "#94A3B8",
+            inactiveContent: "#A1A1AA",
             selectedSurface: "#2563EB",
-            surface: "#0F172A",
+            surface: "#18181B",
         },
     },
     {
@@ -155,6 +155,15 @@ const PALETTES: { colors: TabBarColors; label: string }[] = [
     },
 ];
 
+// Opacity applied whenever a preset is picked (and used as the default look).
+// Values are the previous demo opacities bumped ~30% toward fully opaque.
+export const THEME_OPACITY: TabBarOpacity = {
+    activeContent: 1,
+    inactiveContent: 1,
+    selectedSurface: 1,
+    surface: 0.78,
+};
+
 interface ColorCustomizerProps {
     blur: BlurConfig;
     colors: TabBarColors;
@@ -164,6 +173,7 @@ interface ColorCustomizerProps {
     onConfigChange: (config: TabBarConfig) => void;
     onOpacityChange: (opacity: TabBarOpacity) => void;
     onReset: () => void;
+    onShuffleBackground: () => void;
     onTouchFeedbackColorChange: (color: string) => void;
     opacity: TabBarOpacity;
     touchFeedbackColor: string;
@@ -197,14 +207,9 @@ const NumberField = ({
 
     return (
         <View style={styles.numberField}>
-            <View style={styles.sliderHeader}>
-                <Text numberOfLines={1} style={styles.fieldLabel}>
-                    {label}
-                </Text>
-                <Text style={styles.sliderValue}>
-                    {formatNumber(normalized, decimals)}
-                </Text>
-            </View>
+            <Text numberOfLines={1} style={styles.sliderLabel}>
+                {label}
+            </Text>
             <Slider
                 accessibilityLabel={label}
                 maximumTrackTintColor="#CBD5E1"
@@ -219,6 +224,9 @@ const NumberField = ({
                 thumbTintColor="#2563EB"
                 value={normalized}
             />
+            <Text style={styles.sliderValue}>
+                {formatNumber(normalized, decimals)}
+            </Text>
         </View>
     );
 };
@@ -351,6 +359,7 @@ export const ColorCustomizer = ({
     onConfigChange,
     onOpacityChange,
     onReset,
+    onShuffleBackground,
     onTouchFeedbackColorChange,
     opacity,
     touchFeedbackColor,
@@ -435,6 +444,18 @@ export const ColorCustomizer = ({
                 <Text style={styles.title}>oh-my-tabs</Text>
                 <View style={styles.headerActions}>
                     <Pressable
+                        accessibilityLabel="Change background image"
+                        accessibilityRole="button"
+                        onPress={onShuffleBackground}
+                        style={({ pressed }) => [
+                            styles.githubButton,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <MaterialIcons color="#F8FAFC" name="image" size={16} />
+                        <Text style={styles.githubButtonText}>Change bg</Text>
+                    </Pressable>
+                    <Pressable
                         accessibilityLabel="Open oh-my-tabs on GitHub"
                         accessibilityRole="link"
                         onPress={() => Linking.openURL(GITHUB_URL)}
@@ -465,59 +486,38 @@ export const ColorCustomizer = ({
                     onPress={() => togglePanel("palette")}
                     title="Palette"
                 >
-                    <Section title="Theme presets">
-                        <View style={styles.paletteGrid}>
-                            {PALETTES.map((palette) => {
-                                const selected = Object.keys(colors).every(
-                                    (key) =>
-                                        colors[
-                                            key as ColorKey
-                                        ].toLowerCase() ===
-                                        palette.colors[
-                                            key as ColorKey
-                                        ].toLowerCase(),
-                                );
-                                return (
-                                    <Pressable
-                                        accessibilityLabel={`Apply ${palette.label} palette`}
-                                        accessibilityRole="button"
-                                        key={palette.label}
-                                        onPress={() =>
-                                            onColorsChange({
-                                                ...palette.colors,
-                                            })
-                                        }
-                                        style={({ pressed }) => [
-                                            styles.paletteButton,
-                                            selected &&
-                                                styles.paletteButtonActive,
-                                            pressed && styles.pressed,
-                                        ]}
-                                    >
-                                        <View style={styles.palettePreview}>
-                                            {COLOR_FIELDS.map((field) => (
-                                                <View
-                                                    key={field.key}
-                                                    style={[
-                                                        styles.paletteColor,
-                                                        {
-                                                            backgroundColor:
-                                                                palette.colors[
-                                                                    field.key
-                                                                ],
-                                                        },
-                                                    ]}
-                                                />
-                                            ))}
-                                        </View>
-                                        <Text style={styles.paletteLabel}>
-                                            {palette.label}
-                                        </Text>
-                                    </Pressable>
-                                );
-                            })}
-                        </View>
-                    </Section>
+                    <View style={styles.paletteGrid}>
+                        {PALETTES.map((palette) => {
+                            const selected = Object.keys(colors).every(
+                                (key) =>
+                                    colors[key as ColorKey].toLowerCase() ===
+                                    palette.colors[key as ColorKey].toLowerCase(),
+                            );
+                            return (
+                                <Pressable
+                                    accessibilityLabel={`Apply ${palette.label} palette`}
+                                    accessibilityRole="button"
+                                    key={palette.label}
+                                    onPress={() => {
+                                        onColorsChange({ ...palette.colors });
+                                        onOpacityChange({ ...THEME_OPACITY });
+                                        onTouchFeedbackColorChange(
+                                            palette.colors.selectedSurface,
+                                        );
+                                    }}
+                                    style={({ pressed }) => [
+                                        styles.paletteButton,
+                                        {
+                                            backgroundColor:
+                                                palette.colors.selectedSurface,
+                                        },
+                                        selected && styles.paletteButtonActive,
+                                        pressed && styles.pressed,
+                                    ]}
+                                />
+                            );
+                        })}
+                    </View>
 
                     <Section title="Color and opacity">
                         {COLOR_FIELDS.map((field) => (
@@ -961,6 +961,7 @@ const styles = StyleSheet.create({
         shadowOffset: { height: 12, width: 0 },
         shadowOpacity: 0.18,
         shadowRadius: 28,
+        userSelect: "none",
         width: "100%",
         elevation: 8,
     },
@@ -968,12 +969,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexDirection: "row",
         justifyContent: "space-between",
-        paddingHorizontal: 18,
-        paddingBottom: 10,
-        paddingTop: 12,
+        paddingHorizontal: 16,
+        paddingBottom: 8,
+        paddingTop: 10,
     },
     title: {
         color: "#0F172A",
+        flexShrink: 0,
         fontFamily: "monospace",
         fontSize: 17,
         fontWeight: "700",
@@ -982,7 +984,10 @@ const styles = StyleSheet.create({
     headerActions: {
         alignItems: "center",
         flexDirection: "row",
-        gap: 8,
+        flexShrink: 1,
+        flexWrap: "wrap",
+        gap: 6,
+        justifyContent: "flex-end",
     },
     githubButton: {
         alignItems: "center",
@@ -990,7 +995,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         flexDirection: "row",
         gap: 5,
-        paddingHorizontal: 10,
+        paddingHorizontal: 9,
         paddingVertical: 7,
     },
     githubButtonText: {
@@ -1025,8 +1030,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexDirection: "row",
         justifyContent: "space-between",
-        paddingHorizontal: 18,
-        paddingVertical: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
     },
     accordionHeaderOpen: {
         backgroundColor: "#FFFFFF",
@@ -1042,55 +1047,34 @@ const styles = StyleSheet.create({
     },
     accordionContent: {
         backgroundColor: "#FFFFFF",
-        paddingBottom: 4,
-        paddingHorizontal: 18,
-        paddingTop: 4,
+        paddingBottom: 6,
+        paddingHorizontal: 16,
+        paddingTop: 2,
     },
     section: {
-        marginBottom: 12,
+        marginBottom: 10,
     },
     sectionTitle: {
         color: "#334155",
         fontSize: 12,
         fontWeight: "700",
-        marginBottom: 8,
+        marginBottom: 6,
     },
     paletteGrid: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 7,
+        gap: 6,
+        marginBottom: 10,
     },
     paletteButton: {
-        alignItems: "center",
-        backgroundColor: "#F1F5F9",
         borderColor: "transparent",
-        borderRadius: 10,
-        borderWidth: 1,
-        gap: 5,
-        paddingHorizontal: 7,
-        paddingVertical: 7,
-        width: "23%",
+        borderRadius: 8,
+        borderWidth: 2,
+        height: 30,
+        width: "18%",
     },
     paletteButtonActive: {
         borderColor: "#0F172A",
-        backgroundColor: "#FFFFFF",
-    },
-    palettePreview: {
-        borderColor: "#CBD5E1",
-        borderRadius: 999,
-        borderWidth: 1,
-        flexDirection: "row",
-        height: 20,
-        overflow: "hidden",
-        width: 44,
-    },
-    paletteColor: {
-        flex: 1,
-    },
-    paletteLabel: {
-        color: "#475569",
-        fontSize: 9,
-        fontWeight: "700",
     },
     colorRow: {
         alignItems: "center",
@@ -1098,7 +1082,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         flexDirection: "row",
         gap: 10,
-        paddingVertical: 7,
+        paddingVertical: 6,
     },
     colorPreview: {
         borderColor: "#CBD5E1",
@@ -1126,32 +1110,39 @@ const styles = StyleSheet.create({
         padding: 0,
     },
     opacityField: {
-        width: 150,
+        flex: 1.3,
     },
     twoColumnGrid: {
-        gap: 8,
+        gap: 6,
     },
     numberField: {
+        alignItems: "center",
         backgroundColor: "#F1F5F9",
         borderRadius: 9,
-        gap: 2,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-    },
-    sliderHeader: {
-        alignItems: "center",
         flexDirection: "row",
-        justifyContent: "space-between",
+        gap: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+    },
+    sliderLabel: {
+        color: "#475569",
+        flexShrink: 1,
+        fontSize: 11,
+        fontWeight: "600",
+        minWidth: 0,
     },
     sliderValue: {
         color: "#0F172A",
         fontFamily: "monospace",
         fontSize: 11,
         fontWeight: "700",
+        minWidth: 30,
+        textAlign: "right",
     },
     slider: {
-        height: 28,
-        width: "100%",
+        flex: 1,
+        height: 24,
+        minWidth: 60,
     },
     toggleRow: {
         alignItems: "center",
@@ -1159,9 +1150,9 @@ const styles = StyleSheet.create({
         borderRadius: 9,
         flexDirection: "row",
         justifyContent: "space-between",
-        marginBottom: 8,
+        marginBottom: 6,
         paddingHorizontal: 10,
-        paddingVertical: 7,
+        paddingVertical: 6,
     },
     toggleTrack: {
         backgroundColor: "#CBD5E1",
