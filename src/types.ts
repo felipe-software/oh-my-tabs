@@ -39,7 +39,7 @@ export interface JellyTabBarHeadlessProps {
     onTabChange?: (event: TabsChangeEvent) => void;
     onTabPress?: (event: TabsChangeEvent) => void;
     opacity?: Partial<TabBarOpacity>;
-    selectedIndex?: number;
+    selectedIndex?: number | null;
     selectedBackdrop?: ReactNode;
     touchFeedbackEnabled?: boolean;
     touchFeedbackColor?: string;
@@ -64,6 +64,7 @@ export interface JellyNavigationState {
 }
 
 export interface JellyNavigationOptions {
+    href?: unknown;
     tabBarActiveBackgroundColor?: unknown;
     tabBarActiveTintColor?: unknown;
     tabBarBackground?: () => ReactNode;

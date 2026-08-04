@@ -23,15 +23,26 @@ import {
 
 const IS_WEB = Platform.OS === "web";
 
+const getControlledSelectedIndex = (
+    selectedIndex: number | null,
+    tabCount: number,
+) => {
+    if (selectedIndex === null || selectedIndex < 0 || tabCount === 0) {
+        return -1;
+    }
+
+    return Math.min(selectedIndex, getMaxTabIndex(tabCount));
+};
+
 export const usePillJelly = (
     tabCount: number,
     config: TabBarConfig,
     recording = false,
     displayScale = 1,
     touchFeedbackRadius = 0,
-    controlledSelectedIndex?: number,
+    controlledSelectedIndex?: number | null,
     onTabChange?: (index: number) => void,
-    onTabPress?: (index: number) => void,
+    onTabPress?: (index: number) => boolean | void,
 ) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const { layout, pillJelly } = config;
@@ -51,13 +62,16 @@ export const usePillJelly = (
         update: updateDistortion,
     } = useDistortion(config, geometryScale, touchFeedbackRadius);
     const trackWidth = useSharedValue(0);
-    const initialSelectedIndex = Math.min(
-        Math.max(controlledSelectedIndex ?? 0, 0),
-        getMaxTabIndex(tabCount),
-    );
-    const value = useSharedValue(initialSelectedIndex);
+    const initialSelectedIndex =
+        controlledSelectedIndex === undefined
+            ? tabCount > 0
+                ? 0
+                : -1
+            : getControlledSelectedIndex(controlledSelectedIndex, tabCount);
+    const initialPillPosition = Math.max(initialSelectedIndex, 0);
+    const value = useSharedValue(initialPillPosition);
     const valueVelocity = useSharedValue(0);
-    const targetValue = useSharedValue(initialSelectedIndex);
+    const targetValue = useSharedValue(initialPillPosition);
     const selectedIndex = useSharedValue(initialSelectedIndex);
 
     const filteredVelocity = useSharedValue(0);
@@ -115,12 +129,14 @@ export const usePillJelly = (
             return;
         }
 
-        const nextIndex = Math.min(
-            Math.max(controlledSelectedIndex, 0),
-            getMaxTabIndex(tabCount),
+        const nextIndex = getControlledSelectedIndex(
+            controlledSelectedIndex,
+            tabCount,
         );
         selectedIndex.value = nextIndex;
-        targetValue.value = nextIndex;
+        if (nextIndex >= 0) {
+            targetValue.value = nextIndex;
+        }
         releasePending.value = 1;
         pressTarget.value = 0;
         shapeTarget.value = 1;
@@ -221,6 +237,39 @@ export const usePillJelly = (
         return { transform: [{ scaleX: scale }, { scaleY: scale }] };
     });
 
+    const handleTabPressOnJS = useCallback(
+        (index: number) => {
+            const accepted = onTabPress?.(index);
+            if (accepted !== false || controlledSelectedIndex === undefined) {
+                return;
+            }
+
+            // A prevented navigation leaves the controlled prop unchanged,
+            // so its effect will not run again. Restore the pill explicitly.
+            const controlledIndex = getControlledSelectedIndex(
+                controlledSelectedIndex,
+                tabCount,
+            );
+            selectedIndex.value = controlledIndex;
+            if (controlledIndex >= 0) {
+                targetValue.value = controlledIndex;
+            }
+            releasePending.value = 1;
+            pressTarget.value = 0;
+            shapeTarget.value = 1;
+        },
+        [
+            controlledSelectedIndex,
+            onTabPress,
+            pressTarget,
+            releasePending,
+            selectedIndex,
+            shapeTarget,
+            tabCount,
+            targetValue,
+        ],
+    );
+
     const finishGesture = () => {
         "worklet";
 
@@ -244,7 +293,7 @@ export const usePillJelly = (
         releasePending.value = 1;
 
         if (tabCount > 0 && onTabPress) {
-            runOnJS(onTabPress)(nextIndex);
+            runOnJS(handleTabPressOnJS)(nextIndex);
         }
 
         if (tabCount > 0 && nextIndex !== selectedIndex.value) {

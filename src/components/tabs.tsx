@@ -94,8 +94,12 @@ export const JellyTabBarHeadless = ({
         (index: number) => {
             const item = items[index];
             if (item) {
-                onTabPress?.({ index, item });
+                // JellyTabBar uses the runtime return value to report a
+                // prevented React Navigation tabPress back to the hook.
+                return onTabPress?.({ index, item });
             }
+
+            return false;
         },
         [items, onTabPress],
     );
@@ -117,6 +121,9 @@ export const JellyTabBarHeadless = ({
         />
     ));
     const tabCount = tabs.length;
+    const hasSelectedItem =
+        selectedIndex === undefined ||
+        (selectedIndex !== null && selectedIndex >= 0);
     const {
         activeItemStyle,
         activePillClipStyle,
@@ -234,6 +241,7 @@ export const JellyTabBarHeadless = ({
                                     right: -maskOverscanX,
                                     top: -maskOverscanY,
                                 },
+                                !hasSelectedItem && styles.hidden,
                             ]}
                         >
                             <PillMaskedView
@@ -369,6 +377,9 @@ const styles = StyleSheet.create({
     maskOverscan: {
         position: "absolute",
         zIndex: 2,
+    },
+    hidden: {
+        display: "none",
     },
     selectedSurface: {
         position: "absolute",

@@ -8,7 +8,7 @@ Every adjustable parameter of `<JellyTabBarHeadless />`, taken straight from the
 | --- | --- | --- | --- |
 | `items` | `TabsItem[]` | — | The tabs to render (required). |
 | `maxWidth` | `DimensionValue` | `400` | Maximum track width. The bar stays centered inside wider parents. |
-| `selectedIndex` | `number` | uncontrolled | Controlled selected index. External changes animate the pill to the matching item. |
+| `selectedIndex` | `number \| null` | uncontrolled | Controlled selected index. External changes animate the pill to the matching item. Pass `null` or a negative index to render no selected pill. |
 | `onTabPress` | `(event: TabsChangeEvent) => void` | — | Runs after every completed tap or drag, including the already selected tab. |
 | `onTabChange` | `(event: TabsChangeEvent) => void` | — | Runs on the JS thread after the gesture finishes and the selected tab actually changes. Tapping the already selected tab does not emit it. |
 | `colors` | `Partial<TabBarColors>` | built-in palette | Solid color strings for each layer. See [Colors](#colors). |
@@ -33,7 +33,7 @@ Pass `JellyTabBar` directly to the navigator's `tabBar` callback. The navigator 
 <Tabs tabBar={(props) => <JellyTabBar {...props} />} />
 ```
 
-It supports `title`, string `tabBarLabel`, `tabBarIcon`, `tabBarShowLabel`, active/inactive tint and background colors, `tabBarBackground` and `tabBarStyle`. The centered bar has `maxWidth={400}` by default; change it with the `maxWidth` prop. Pass `floating` to absolutely position the bar over the screen, and use `containerStyle` for additional wrapper overrides. Function-valued `tabBarLabel`, badges, custom tab buttons and long-press handling are not currently rendered by the Jelly layout.
+It supports Expo Router's `href: null` convention for hidden tabs, plus `title`, string `tabBarLabel`, `tabBarIcon`, `tabBarShowLabel`, active/inactive tint and background colors, `tabBarBackground` and `tabBarStyle`. The centered bar has `maxWidth={400}` by default; change it with the `maxWidth` prop. Pass `floating` to absolutely position the bar over the screen, and use `containerStyle` for additional wrapper overrides. Function-valued `tabBarLabel`, badges, custom tab buttons and long-press handling are not currently rendered by the Jelly layout.
 
 ### `TabsItem`
 

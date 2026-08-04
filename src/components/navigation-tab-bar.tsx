@@ -61,7 +61,17 @@ export const JellyTabBar = ({
     state,
     ...headlessProps
 }: JellyTabBarProps) => {
+    const visibleRoutes = useMemo(
+        () =>
+            state.routes.filter(
+                (route) => descriptors[route.key]?.options.href !== null,
+            ),
+        [descriptors, state.routes],
+    );
     const focusedRoute = state.routes[state.index];
+    const selectedIndex = visibleRoutes.findIndex(
+        (route) => route.key === focusedRoute?.key,
+    );
     const focusedOptions = focusedRoute
         ? descriptors[focusedRoute.key]?.options
         : undefined;
@@ -70,7 +80,7 @@ export const JellyTabBar = ({
 
     const items = useMemo<readonly TabsItem[]>(
         () =>
-            state.routes.map((route) => {
+            visibleRoutes.map((route) => {
                 const options = descriptors[route.key]?.options ?? {};
                 return {
                     activeIcon: resolveIcon(options, true),
@@ -79,7 +89,7 @@ export const JellyTabBar = ({
                     label: resolveLabel(route.name, options),
                 };
             }),
-        [descriptors, state.routes],
+        [descriptors, visibleRoutes],
     );
 
     const navigationColors = useMemo(
@@ -103,9 +113,9 @@ export const JellyTabBar = ({
 
     const handleTabPress = useCallback(
         ({ index }: { index: number }) => {
-            const route = state.routes[index];
+            const route = visibleRoutes[index];
             if (!route) {
-                return;
+                return false;
             }
 
             const event = navigation.emit({
@@ -114,7 +124,11 @@ export const JellyTabBar = ({
                 type: "tabPress",
             }) as { defaultPrevented?: boolean };
 
-            if (index !== state.index && !event.defaultPrevented) {
+            if (event.defaultPrevented) {
+                return false;
+            }
+
+            if (route.key !== focusedRoute?.key) {
                 navigation.dispatch({
                     payload: {
                         name: route.name,
@@ -125,8 +139,10 @@ export const JellyTabBar = ({
                     type: "NAVIGATE",
                 });
             }
+
+            return true;
         },
-        [navigation, state],
+        [focusedRoute?.key, navigation, state.key, visibleRoutes],
     );
 
     return (
@@ -157,7 +173,7 @@ export const JellyTabBar = ({
                     displayScale={displayScale}
                     items={items}
                     onTabPress={handleTabPress}
-                    selectedIndex={state.index}
+                    selectedIndex={selectedIndex}
                 />
             </View>
         </View>
