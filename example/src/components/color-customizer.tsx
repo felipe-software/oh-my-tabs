@@ -1,27 +1,6 @@
-import { Tabs } from "@/components/tabs";
-import {
-    DEFAULT_TAB_BAR_COLORS,
-    TABBAR_LAYOUT,
-    type TabBarColors,
-} from "@/constants";
-import { Image } from "expo-image";
-import { NavigationBar } from "expo-navigation-bar";
-import { StatusBar } from "expo-status-bar";
+import { type TabBarColors } from "oh-my-tabs";
 import { useState } from "react";
-import {
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    useWindowDimensions,
-    View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-const RECORDING_MODE =
-    process.env.EXPO_PUBLIC_RECORDING_MODE === "1" ||
-    process.env.EXPO_PUBLIC_RECORDING_MODE === "true";
-const HORIZONTAL_PADDING = 16;
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 type ColorKey = keyof TabBarColors;
 
@@ -46,7 +25,12 @@ const COLOR_FIELDS: { key: ColorKey; label: string }[] = [
 const PRESETS: { colors: TabBarColors; label: string }[] = [
     {
         label: "Graphite",
-        colors: DEFAULT_TAB_BAR_COLORS,
+        colors: {
+            activeContent: "#11100F",
+            inactiveContent: "#B8B4AD",
+            selectedSurface: "#F2EEE7",
+            surface: "#22211F",
+        },
     },
     {
         label: "Clay",
@@ -76,6 +60,11 @@ const PRESETS: { colors: TabBarColors; label: string }[] = [
         },
     },
 ];
+
+interface ColorCustomizerProps {
+    colors: TabBarColors;
+    onColorsChange: (colors: TabBarColors) => void;
+}
 
 interface ColorFieldProps {
     colorKey: ColorKey;
@@ -138,25 +127,14 @@ const ColorField = ({
     </View>
 );
 
-export default function HomeScreen() {
-    const { height, width } = useWindowDimensions();
-    const [colors, setColors] = useState<TabBarColors>({
-        ...DEFAULT_TAB_BAR_COLORS,
-    });
-    const [drafts, setDrafts] = useState<TabBarColors>({
-        ...DEFAULT_TAB_BAR_COLORS,
-    });
-    const defaultTrackWidth = Math.max(0, width - HORIZONTAL_PADDING * 2);
-    const recordingScale =
-        defaultTrackWidth > 0
-            ? Math.min(
-                  height / defaultTrackWidth,
-                  width / TABBAR_LAYOUT.trackHeight,
-              )
-            : 1;
+export const ColorCustomizer = ({
+    colors,
+    onColorsChange,
+}: ColorCustomizerProps) => {
+    const [drafts, setDrafts] = useState<TabBarColors>({ ...colors });
 
     const updateColor = (key: ColorKey, value: string) => {
-        setColors((current) => ({ ...current, [key]: value }));
+        onColorsChange({ ...colors, [key]: value });
         setDrafts((current) => ({ ...current, [key]: value }));
     };
 
@@ -165,137 +143,78 @@ export default function HomeScreen() {
         setDrafts((current) => ({ ...current, [key]: normalized }));
 
         if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-            setColors((current) => ({ ...current, [key]: normalized }));
+            onColorsChange({ ...colors, [key]: normalized });
         }
     };
 
     const applyPreset = (presetColors: TabBarColors) => {
-        setColors({ ...presetColors });
+        onColorsChange({ ...presetColors });
         setDrafts({ ...presetColors });
     };
 
     return (
-        <View style={styles.root}>
-            <StatusBar hidden={RECORDING_MODE} style="light" />
-            <NavigationBar hidden={RECORDING_MODE} />
-            <Image
-                contentFit="cover"
-                source={require("../../assets/images/color-lab-background.png")}
-                style={StyleSheet.absoluteFill}
-            />
-            <SafeAreaView
-                edges={RECORDING_MODE ? [] : ["top", "bottom"]}
-                style={[
-                    styles.screen,
-                    RECORDING_MODE && styles.recordingScreen,
-                ]}
-            >
-                {!RECORDING_MODE && (
-                    <View style={styles.controlsPanel}>
-                        <View style={styles.controlsHeader}>
-                            <View>
-                                <Text style={styles.eyebrow}>COLOR LAB</Text>
-                                <Text style={styles.title}>Solid surfaces</Text>
-                            </View>
-                            <View style={styles.opaqueBadge}>
-                                <View style={styles.opaqueDot} />
-                                <Text style={styles.opaqueBadgeText}>OPAQUE</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.presets}>
-                            {PRESETS.map((preset) => (
-                                <Pressable
-                                    accessibilityLabel={`Apply ${preset.label} palette`}
-                                    accessibilityRole="button"
-                                    key={preset.label}
-                                    onPress={() => applyPreset(preset.colors)}
-                                    style={styles.presetButton}
-                                >
-                                    <View style={styles.presetPreview}>
-                                        <View
-                                            style={[
-                                                styles.presetHalf,
-                                                {
-                                                    backgroundColor:
-                                                        preset.colors.surface,
-                                                },
-                                            ]}
-                                        />
-                                        <View
-                                            style={[
-                                                styles.presetHalf,
-                                                {
-                                                    backgroundColor:
-                                                        preset.colors
-                                                            .selectedSurface,
-                                                },
-                                            ]}
-                                        />
-                                    </View>
-                                    <Text style={styles.presetLabel}>
-                                        {preset.label}
-                                    </Text>
-                                </Pressable>
-                            ))}
-                        </View>
-
-                        <View style={styles.divider} />
-
-                        {COLOR_FIELDS.map((field) => (
-                            <ColorField
-                                colorKey={field.key}
-                                colors={colors}
-                                draft={drafts[field.key]}
-                                key={field.key}
-                                label={field.label}
-                                onChange={updateColor}
-                                onDraftChange={updateDraft}
-                            />
-                        ))}
-                    </View>
-                )}
-
-                <View
-                    style={[
-                        styles.tabsContainer,
-                        RECORDING_MODE && {
-                            height: TABBAR_LAYOUT.trackHeight * recordingScale,
-                            width: defaultTrackWidth * recordingScale,
-                            transform: [{ rotate: "90deg" }],
-                        },
-                    ]}
-                >
-                    <Tabs
-                        colors={colors}
-                        displayScale={RECORDING_MODE ? recordingScale : 1}
-                        recording={RECORDING_MODE}
-                    />
+        <View style={styles.panel}>
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.eyebrow}>COLOR LAB</Text>
+                    <Text style={styles.title}>Solid surfaces</Text>
                 </View>
-            </SafeAreaView>
+                <View style={styles.opaqueBadge}>
+                    <View style={styles.opaqueDot} />
+                    <Text style={styles.opaqueBadgeText}>OPAQUE</Text>
+                </View>
+            </View>
+
+            <View style={styles.presets}>
+                {PRESETS.map((preset) => (
+                    <Pressable
+                        accessibilityLabel={`Apply ${preset.label} palette`}
+                        accessibilityRole="button"
+                        key={preset.label}
+                        onPress={() => applyPreset(preset.colors)}
+                        style={styles.presetButton}
+                    >
+                        <View style={styles.presetPreview}>
+                            <View
+                                style={[
+                                    styles.presetHalf,
+                                    { backgroundColor: preset.colors.surface },
+                                ]}
+                            />
+                            <View
+                                style={[
+                                    styles.presetHalf,
+                                    {
+                                        backgroundColor:
+                                            preset.colors.selectedSurface,
+                                    },
+                                ]}
+                            />
+                        </View>
+                        <Text style={styles.presetLabel}>{preset.label}</Text>
+                    </Pressable>
+                ))}
+            </View>
+
+            <View style={styles.divider} />
+
+            {COLOR_FIELDS.map((field) => (
+                <ColorField
+                    colorKey={field.key}
+                    colors={colors}
+                    draft={drafts[field.key]}
+                    key={field.key}
+                    label={field.label}
+                    onChange={updateColor}
+                    onDraftChange={updateDraft}
+                />
+            ))}
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
-    root: {
-        flex: 1,
-        backgroundColor: "#11100f",
-    },
-    screen: {
-        flex: 1,
-        justifyContent: "space-between",
-        paddingHorizontal: HORIZONTAL_PADDING,
-        paddingTop: 12,
-        alignItems: "center",
-    },
-    recordingScreen: {
-        justifyContent: "center",
-        paddingHorizontal: 0,
-        paddingTop: 0,
-        overflow: "hidden",
-    },
-    controlsPanel: {
+    panel: {
         width: "100%",
         maxWidth: 480,
         paddingHorizontal: 18,
@@ -311,7 +230,7 @@ const styles = StyleSheet.create({
         shadowRadius: 24,
         elevation: 8,
     },
-    controlsHeader: {
+    header: {
         alignItems: "center",
         flexDirection: "row",
         justifyContent: "space-between",
@@ -437,10 +356,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         height: 22,
         width: 22,
-    },
-    tabsContainer: {
-        height: TABBAR_LAYOUT.trackHeight,
-        marginBottom: 12,
-        width: "100%",
     },
 });

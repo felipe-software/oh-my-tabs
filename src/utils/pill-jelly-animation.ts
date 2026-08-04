@@ -3,7 +3,7 @@ import {
     getFrameDeltaSeconds,
     getMaxTabIndex,
     type SpringConfig,
-} from "@/utils/animation";
+} from "./animation";
 import type { SharedValue } from "react-native-reanimated";
 
 type SharedNumber = SharedValue<number>;

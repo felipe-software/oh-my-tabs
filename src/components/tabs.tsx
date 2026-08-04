@@ -1,136 +1,41 @@
-import { TabItem } from "@/components/tab-item";
+import { TabItem, type TabsIconProps } from "./tab-item";
 import {
     DEFAULT_TAB_BAR_COLORS,
     DISTORTION,
     TABBAR_LAYOUT,
     type TabBarColors,
-} from "@/constants";
-import { usePillJelly } from "@/hooks/use-pill-jelly";
-import MaskedView from "@react-native-masked-view/masked-view";
-import { MaterialIcons } from "@react-native-vector-icons/material-icons/static";
-import { cloneElement } from "react";
-import {
-    StyleProp,
-    StyleSheet,
-    View,
-    ViewStyle,
-} from "react-native";
+} from "../constants";
+import { usePillJelly } from "../hooks/use-pill-jelly";
+import { PillMaskedView } from "./pill-masked-view";
+import { TouchFeedback } from "./touch-feedback";
+import { cloneElement, type ReactElement } from "react";
+import { StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-    AnimatedStyle,
-} from "react-native-reanimated";
-import Svg, {
-    Defs,
-    RadialGradient,
-    Rect,
-    Stop,
-} from "react-native-svg";
+import Animated from "react-native-reanimated";
 
-interface TabsProps {
+export interface TabsItem {
+    icon: ReactElement<TabsIconProps>;
+    key: string;
+    label: string;
+}
+
+export interface TabsProps {
     colors?: Partial<TabBarColors>;
     displayScale?: number;
     recording?: boolean;
+    items: readonly TabsItem[];
     touchFeedbackEnabled?: boolean;
+    touchFeedbackColor?: string;
     touchFeedbackOpacity?: number;
     touchFeedbackScale?: number;
 }
 
-interface TouchFeedbackProps {
-    animatedStyle: StyleProp<AnimatedStyle<ViewStyle>>;
-    centerOpacity: number;
-    diameter: number;
-    gradientId: string;
-    middleOpacity: number;
-    offsetX?: number;
-    offsetY?: number;
-    radius: number;
-}
-
-interface PillMaskProps {
-    animatedStyle: StyleProp<AnimatedStyle<ViewStyle>>;
-    height: number;
-    left: number;
-    top: number;
-}
-
-const PillMask = ({
-    animatedStyle,
-    height,
-    left,
-    top,
-}: PillMaskProps) => (
-    <Animated.View
-        style={[
-            styles.pillMask,
-            { height, left, top },
-            animatedStyle,
-        ]}
-    />
-);
-
-const TouchFeedback = ({
-    animatedStyle,
-    centerOpacity,
-    diameter,
-    gradientId,
-    middleOpacity,
-    offsetX = 0,
-    offsetY = 0,
-    radius,
-}: TouchFeedbackProps) => (
-    <Animated.View
-        style={[
-            styles.touchFeedback,
-            {
-                height: diameter,
-                left: offsetX,
-                top: offsetY,
-                width: diameter,
-            },
-            animatedStyle,
-        ]}
-    >
-        <Svg height={diameter} width={diameter}>
-            <Defs>
-                <RadialGradient
-                    id={gradientId}
-                    cx={radius}
-                    cy={radius}
-                    fx={radius}
-                    fy={radius}
-                    gradientUnits="userSpaceOnUse"
-                    r={radius}
-                >
-                    <Stop
-                        offset="0%"
-                        stopColor="#ffffff"
-                        stopOpacity={centerOpacity}
-                    />
-                    <Stop
-                        offset="45%"
-                        stopColor="#ffffff"
-                        stopOpacity={middleOpacity}
-                    />
-                    <Stop
-                        offset="100%"
-                        stopColor="#ffffff"
-                        stopOpacity={0}
-                    />
-                </RadialGradient>
-            </Defs>
-            <Rect
-                fill={`url(#${gradientId})`}
-                height={diameter}
-                width={diameter}
-            />
-        </Svg>
-    </Animated.View>
-);
-
 export const Tabs = ({
     colors,
     displayScale = 1,
+    items,
     recording = false,
+    touchFeedbackColor,
     touchFeedbackEnabled = true,
     touchFeedbackOpacity = DISTORTION.touchFeedback.opacity,
     touchFeedbackScale = DISTORTION.touchFeedback.scale,
@@ -139,6 +44,8 @@ export const Tabs = ({
         ...DEFAULT_TAB_BAR_COLORS,
         ...colors,
     };
+    const resolvedTouchFeedbackColor =
+        touchFeedbackColor ?? resolvedColors.selectedSurface;
     const maskOverscanX =
         TABBAR_LAYOUT.maskOverscanX * displayScale;
     const maskOverscanY =
@@ -164,46 +71,25 @@ export const Tabs = ({
         normalizedTouchFeedbackOpacity *
         DISTORTION.touchFeedback.middleOpacityRatio;
 
-    const tabs = [
+    const tabs = items.map((item) => (
         <TabItem
             activeColor={resolvedColors.activeContent}
             displayScale={displayScale}
-            icon={<MaterialIcons name="home" size={iconSize} />}
+            icon={item.icon}
+            iconSize={iconSize}
             inactiveColor={resolvedColors.inactiveContent}
-            key="home"
-            text="Home"
-        />,
-        <TabItem
-            activeColor={resolvedColors.activeContent}
-            displayScale={displayScale}
-            icon={<MaterialIcons name="photo-camera" size={iconSize} />}
-            inactiveColor={resolvedColors.inactiveContent}
-            key="camera"
-            text="Camera"
-        />,
-        <TabItem
-            activeColor={resolvedColors.activeContent}
-            displayScale={displayScale}
-            icon={<MaterialIcons name="settings" size={iconSize} />}
-            inactiveColor={resolvedColors.inactiveContent}
-            key="settings"
-            text="Settings"
-        />,
-        <TabItem
-            activeColor={resolvedColors.activeContent}
-            displayScale={displayScale}
-            icon={<MaterialIcons name="format-paint" size={iconSize} />}
-            inactiveColor={resolvedColors.inactiveContent}
-            key="walls"
-            text="Walls"
-        />,
-    ];
+            key={item.key}
+            text={item.label}
+        />
+    ));
     const tabCount = tabs.length;
     const {
         activeItemStyle,
+        activePillClipStyle,
         activePillMaskStyle,
         gesture,
         panelStyle,
+        pillClipStyle,
         pillMaskStyle,
         pressedStyle,
         selectedTouchFeedbackStyle,
@@ -267,6 +153,7 @@ export const Tabs = ({
                                     centerOpacity={
                                         normalizedTouchFeedbackOpacity
                                     }
+                                    color={resolvedTouchFeedbackColor}
                                     diameter={touchFeedbackDiameter}
                                     gradientId="tabbar-touch-feedback"
                                     middleOpacity={
@@ -301,20 +188,12 @@ export const Tabs = ({
                                 },
                             ]}
                         >
-                            <MaskedView
-                                style={StyleSheet.absoluteFill}
-                                maskElement={
-                                    <PillMask
-                                        animatedStyle={pillMaskStyle}
-                                        height={itemHeight}
-                                        left={
-                                            maskOverscanX + trackInset
-                                        }
-                                        top={
-                                            maskOverscanY + trackInset
-                                        }
-                                    />
-                                }
+                            <PillMaskedView
+                                animatedStyle={pillMaskStyle}
+                                clipStyle={pillClipStyle}
+                                height={itemHeight}
+                                left={maskOverscanX + trackInset}
+                                top={maskOverscanY + trackInset}
                             >
                                 <View
                                     style={[
@@ -333,6 +212,9 @@ export const Tabs = ({
                                         centerOpacity={
                                             normalizedTouchFeedbackOpacity
                                         }
+                                        color={
+                                            resolvedTouchFeedbackColor
+                                        }
                                         diameter={
                                             touchFeedbackDiameter
                                         }
@@ -345,24 +227,14 @@ export const Tabs = ({
                                         radius={touchFeedbackRadius}
                                     />
                                 )}
-                            </MaskedView>
+                            </PillMaskedView>
 
-                            <MaskedView
-                                style={StyleSheet.absoluteFill}
-                                maskElement={
-                                    <PillMask
-                                        animatedStyle={
-                                            activePillMaskStyle
-                                        }
-                                        height={itemHeight}
-                                        left={
-                                            maskOverscanX + trackInset
-                                        }
-                                        top={
-                                            maskOverscanY + trackInset
-                                        }
-                                    />
-                                }
+                            <PillMaskedView
+                                animatedStyle={activePillMaskStyle}
+                                clipStyle={activePillClipStyle}
+                                height={itemHeight}
+                                left={maskOverscanX + trackInset}
+                                top={maskOverscanY + trackInset}
                             >
                                 <View
                                     style={[
@@ -390,7 +262,7 @@ export const Tabs = ({
                                         }),
                                     )}
                                 </View>
-                            </MaskedView>
+                            </PillMaskedView>
                         </View>
                     </Animated.View>
                 </Animated.View>
@@ -430,11 +302,6 @@ const styles = StyleSheet.create({
         top: 0,
         overflow: "hidden",
     },
-    touchFeedback: {
-        position: "absolute",
-        left: 0,
-        top: 0,
-    },
     tabsRow: {
         position: "absolute",
         left: 0,
@@ -447,11 +314,6 @@ const styles = StyleSheet.create({
     maskOverscan: {
         position: "absolute",
         zIndex: 2,
-    },
-    pillMask: {
-        position: "absolute",
-        backgroundColor: "#000000",
-        borderRadius: 999,
     },
     selectedSurface: {
         position: "absolute",

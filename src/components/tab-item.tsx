@@ -1,12 +1,24 @@
-import { TABBAR_LAYOUT } from "@/constants";
-import { cloneElement, ReactElement } from "react";
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
-import Animated, { AnimatedStyle } from "react-native-reanimated";
+import { TABBAR_LAYOUT } from "../constants";
+import { cloneElement, type ReactElement } from "react";
+import {
+    type StyleProp,
+    StyleSheet,
+    Text,
+    View,
+    type ViewStyle,
+} from "react-native";
+import Animated, { type AnimatedStyle } from "react-native-reanimated";
+
+export interface TabsIconProps {
+    color?: string;
+    size?: number;
+}
 
 export interface TabItemProps {
     activeColor?: string;
     displayScale?: number;
-    icon: ReactElement;
+    icon: ReactElement<TabsIconProps>;
+    iconSize?: number;
     inactiveColor?: string;
     text: string;
     isActive?: boolean;
@@ -17,6 +29,7 @@ export const TabItem = ({
     activeColor = "#000000",
     displayScale = 1,
     icon,
+    iconSize,
     inactiveColor = "#afafaf",
     text,
     isActive = false,
@@ -41,8 +54,9 @@ export const TabItem = ({
                         transform: [{ translateY: 2 * displayScale }],
                     }}
                 >
-                    {cloneElement(icon as ReactElement<any>, {
+                    {cloneElement(icon, {
                         color,
+                        ...(iconSize === undefined ? {} : { size: iconSize }),
                     })}
                 </View>
                 <Text
