@@ -28,6 +28,12 @@ export const PILL_JELLY = {
 
 export const DISTORTION = {
     pressedScale: 1.025,
+    touchFeedback: {
+        middleOpacityRatio: 0.43,
+        opacity: 0.15,
+        radius: 150,
+        scale: 2,
+    },
     spring: {
         damping: 18,
         mass: 0.9,
