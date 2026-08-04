@@ -2,7 +2,7 @@
 
 A jelly-like animated tab bar for React Native, built with Reanimated and Gesture Handler.
 
-![preview](https://f.feridinha.com/OwoiZ.gif "Oh My Tabs preview")
+https://github.com/user-attachments/assets/16cdf749-7f98-4f97-857b-10bfd2a0d79d
 
 ## Install
 
@@ -24,32 +24,32 @@ import { Tabs, type TabsItem } from "oh-my-tabs";
 import { View } from "react-native";
 
 const items: TabsItem[] = [
-  {
-    key: "home",
-    label: "Home",
-    icon: <MaterialIcons name="home" size={28} />,
-  },
-  {
-    key: "settings",
-    label: "Settings",
-    icon: <MaterialIcons name="settings" size={28} />,
-  },
+    {
+        key: "home",
+        label: "Home",
+        icon: <MaterialIcons name="home" size={28} />,
+    },
+    {
+        key: "settings",
+        label: "Settings",
+        icon: <MaterialIcons name="settings" size={28} />,
+    },
 ];
 
 export function BottomTabs() {
-  return (
-    <View style={{ height: 64, width: "100%" }}>
-      <Tabs
-        items={items}
-        colors={{
-          surface: "#22211F",
-          selectedSurface: "#F2EEE7",
-          activeContent: "#11100F",
-          inactiveContent: "#B8B4AD",
-        }}
-      />
-    </View>
-  );
+    return (
+        <View style={{ height: 64, width: "100%" }}>
+            <Tabs
+                items={items}
+                colors={{
+                    surface: "#22211F",
+                    selectedSurface: "#F2EEE7",
+                    activeContent: "#11100F",
+                    inactiveContent: "#B8B4AD",
+                }}
+            />
+        </View>
+    );
 }
 ```
 
@@ -73,5 +73,3 @@ bun run typecheck
 bun run example:android
 bun run example:ios
 ```
-
-The library build uses tsdown and emits ESM, CommonJS, source maps, and TypeScript declarations into `dist/`.
