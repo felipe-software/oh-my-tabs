@@ -9,20 +9,30 @@ Demo at: https://jelly.felipe.software/
 !! Still under development !!
 This project is kinda focused on Android, but technically you can use it on web and iOS too
 
-## Install
+## How to install
 
-### Expo
+<details>
+<summary>
+Expo
+</summary>
 
 Let Expo select the native dependency versions that match the app's SDK:
 
 ```sh
-bun add react-native-jelly-tabs
-bunx expo install @react-native-masked-view/masked-view react-native-gesture-handler react-native-reanimated react-native-svg
+npm install react-native-jelly-tabs
+npx expo install @react-native-masked-view/masked-view react-native-gesture-handler react-native-reanimated react-native-svg
 ```
 
 If Expo selects Reanimated 4, also run `bunx expo install react-native-worklets`. Do not install `react-native-worklets` with Reanimated 3. This distinction matters: Reanimated 4 requires Worklets and the New Architecture, while Reanimated 3 is the compatible branch for the Legacy Architecture.
 
-### Bare React Native
+</details>
+
+
+
+<details>
+    <summary>
+    Bare React Native
+    </summary>
 
 Install the version of each native dependency that supports your app's exact React Native version and architecture. There is no single Reanimated version that is correct for every React Native release, so Jelly Tabs deliberately does not recommend an arbitrary fixed version.
 
@@ -30,9 +40,10 @@ Install the version of each native dependency that supports your app's exact Rea
 2. Select Reanimated from the official [Reanimated compatibility table](https://docs.swmansion.com/react-native-reanimated/docs/guides/compatibility/). Use its linked 3.x table for the Legacy Architecture.
 3. Select Gesture Handler from its official [React Native support table](https://github.com/software-mansion/react-native-gesture-handler#react-native-support).
 4. For Reanimated 4, install the matching `react-native-worklets` version shown in the Reanimated table. For Reanimated 3, do not install Worklets.
+</details>
 
 ```sh
-bun add react-native-jelly-tabs @react-native-masked-view/masked-view react-native-svg
+npm install react-native-jelly-tabs @react-native-masked-view/masked-view react-native-svg
 ```
 
 Jelly Tabs itself supports React Native `>=0.76`, Gesture Handler `>=2.25 <4`, and Reanimated `>=3.16 <5`. Those ranges describe the APIs used by this library; the selected native packages must also be mutually compatible with the consuming app's React Native version. In particular, Gesture Handler 3 requires React Native 0.82 or newer.
