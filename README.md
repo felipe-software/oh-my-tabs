@@ -2,7 +2,7 @@
 
 A jelly-like animated tab bar for React Native, built with Reanimated and Gesture Handler.
 
-https://github.com/user-attachments/assets/16cdf749-7f98-4f97-857b-10bfd2a0d79d
+https://github.com/user-attachments/assets/51101532-fdac-44bb-9ad0-e75f9c3b0171
 
 ## Install
 
