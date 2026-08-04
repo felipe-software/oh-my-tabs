@@ -55,6 +55,8 @@ export function BottomTabs() {
 
 `colors` accepts solid React Native color strings for the track, selected pill, active content, and inactive content. Partial color objects fall back to the built-in palette.
 
+The touch feedback color follows `colors.selectedSurface` by default. Set `touchFeedbackColor` to override it independently.
+
 ## Development
 
 The reusable package lives in `src/`. The Expo playground, generated background, and color laboratory live in `example/`.

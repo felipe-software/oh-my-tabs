@@ -5,6 +5,10 @@ export {
     type PillMaskedViewProps,
 } from "./components/pill-masked-view";
 export {
+    TouchFeedback,
+    type TouchFeedbackProps,
+} from "./components/touch-feedback";
+export {
     DEFAULT_TAB_BAR_COLORS,
     DISTORTION,
     PILL_JELLY,
