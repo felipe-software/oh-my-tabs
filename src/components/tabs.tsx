@@ -8,10 +8,32 @@ import type { JellyTabBarHeadlessProps } from "../types";
 import { usePillJelly } from "../hooks/use-pill-jelly";
 import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
-import { cloneElement, useCallback, useMemo, useRef } from "react";
+import { cloneElement, useCallback, useMemo, useRef, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
+
+const ACTIVATE_ACCESSIBILITY_ACTION = [{ name: "activate" }] as const;
+const TAB_ACCESSIBILITY_ACTIONS = [
+    { name: "activate" },
+    { name: "longpress" },
+] as const;
+
+const getSelectedItemIndex = (
+    selectedIndex: number | null,
+    itemCount: number,
+) => {
+    if (
+        selectedIndex === null ||
+        !Number.isFinite(selectedIndex) ||
+        selectedIndex < 0 ||
+        itemCount === 0
+    ) {
+        return null;
+    }
+
+    return Math.min(selectedIndex, itemCount - 1);
+};
 
 export const JellyTabBarHeadless = ({
     backdrop,
@@ -21,6 +43,7 @@ export const JellyTabBarHeadless = ({
     items,
     maxWidth = 400,
     onTabChange,
+    onTabLongPress,
     onTabPress,
     opacity,
     recording = false,
@@ -32,6 +55,8 @@ export const JellyTabBarHeadless = ({
     touchFeedbackScale,
 }: JellyTabBarHeadlessProps) => {
     const trackRef = useRef<View>(null);
+    const [uncontrolledSelectedIndex, setUncontrolledSelectedIndex] =
+        useState(0);
     const resolvedConfig = useMemo(() => resolveTabBarConfig(config), [config]);
     const resolvedColors = {
         ...DEFAULT_TAB_BAR_COLORS,
@@ -85,17 +110,29 @@ export const JellyTabBarHeadless = ({
         (index: number) => {
             const item = items[index];
             if (item) {
+                setUncontrolledSelectedIndex(index);
                 onTabChange?.({ index, item });
             }
         },
         [items, onTabChange],
     );
+    const handleTabLongPress = useCallback(
+        (index: number) => {
+            const item = items[index];
+            if (item) {
+                onTabLongPress?.({ index, item });
+            }
+        },
+        [items, onTabLongPress],
+    );
     const handleTabPress = useCallback(
         (index: number) => {
             const item = items[index];
             if (item) {
-                onTabPress?.({ index, item });
+                return onTabPress?.({ index, item });
             }
+
+            return false;
         },
         [items, onTabPress],
     );
@@ -105,6 +142,8 @@ export const JellyTabBarHeadless = ({
             activeColor={resolvedColors.activeContent}
             activeOpacity={activeContentOpacity}
             activeIcon={item.activeIcon}
+            badge={item.badge}
+            badgeStyle={item.badgeStyle}
             colors={resolvedColors}
             displayScale={displayScale}
             iconSize={iconSize}
@@ -113,11 +152,18 @@ export const JellyTabBarHeadless = ({
             inactiveOpacity={inactiveContentOpacity}
             itemHeight={itemHeight}
             key={item.key}
+            labelStyle={item.labelStyle}
             text={item.label}
         />
     ));
     const tabCount = tabs.length;
+    const semanticSelectedIndex = getSelectedItemIndex(
+        selectedIndex === undefined ? uncontrolledSelectedIndex : selectedIndex,
+        tabCount,
+    );
+    const hasSelectedItem = semanticSelectedIndex !== null;
     const {
+        activateTab,
         activeItemStyle,
         activePillClipStyle,
         activePillMaskStyle,
@@ -138,8 +184,9 @@ export const JellyTabBarHeadless = ({
         displayScale,
         touchFeedbackRadius,
         selectedIndex,
-        onTabChange ? handleTabChange : undefined,
+        handleTabChange,
         onTabPress ? handleTabPress : undefined,
+        onTabLongPress ? handleTabLongPress : undefined,
     );
 
     return (
@@ -168,6 +215,9 @@ export const JellyTabBarHeadless = ({
                     }}
                 >
                     <Animated.View
+                        accessibilityElementsHidden
+                        aria-hidden
+                        importantForAccessibility="no-hide-descendants"
                         pointerEvents="none"
                         style={[styles.panel, panelStyle]}
                     >
@@ -234,6 +284,7 @@ export const JellyTabBarHeadless = ({
                                     right: -maskOverscanX,
                                     top: -maskOverscanY,
                                 },
+                                !hasSelectedItem && styles.hidden,
                             ]}
                         >
                             <PillMaskedView
@@ -306,6 +357,49 @@ export const JellyTabBarHeadless = ({
                             </PillMaskedView>
                         </View>
                     </Animated.View>
+
+                    <View
+                        pointerEvents="box-none"
+                        style={[
+                            styles.accessibilityTabsRow,
+                            { paddingHorizontal: trackInset },
+                        ]}
+                    >
+                        {items.map((item, index) => (
+                            <View
+                                accessibilityActions={
+                                    onTabLongPress
+                                        ? TAB_ACCESSIBILITY_ACTIONS
+                                        : ACTIVATE_ACCESSIBILITY_ACTION
+                                }
+                                accessibilityLabel={
+                                    item.accessibilityLabel ?? item.label
+                                }
+                                accessibilityRole="tab"
+                                accessibilityState={{
+                                    selected: semanticSelectedIndex === index,
+                                }}
+                                accessible
+                                key={`accessible-${item.key}`}
+                                pointerEvents="none"
+                                style={styles.accessibilityTab}
+                                testID={item.testID}
+                                onAccessibilityAction={(event) => {
+                                    if (
+                                        event.nativeEvent.actionName ===
+                                        "activate"
+                                    ) {
+                                        activateTab(index);
+                                    } else if (
+                                        event.nativeEvent.actionName ===
+                                        "longpress"
+                                    ) {
+                                        handleTabLongPress(index);
+                                    }
+                                }}
+                            />
+                        ))}
+                    </View>
                 </Animated.View>
             </Animated.View>
         </GestureDetector>
@@ -366,9 +460,24 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
+    accessibilityTabsRow: {
+        bottom: 0,
+        flexDirection: "row",
+        left: 0,
+        position: "absolute",
+        right: 0,
+        top: 0,
+        zIndex: 3,
+    },
+    accessibilityTab: {
+        flex: 1,
+    },
     maskOverscan: {
         position: "absolute",
         zIndex: 2,
+    },
+    hidden: {
+        display: "none",
     },
     selectedSurface: {
         position: "absolute",

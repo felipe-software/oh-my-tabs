@@ -5,7 +5,12 @@ import type {
     TabBarOpacity,
 } from "./constants";
 import type { ComponentType, ReactNode } from "react";
-import type { DimensionValue, StyleProp, ViewStyle } from "react-native";
+import type {
+    DimensionValue,
+    StyleProp,
+    TextStyle,
+    ViewStyle,
+} from "react-native";
 
 export interface TabsIconProps {
     color: string;
@@ -17,10 +22,15 @@ export interface TabsIconProps {
 export type TabsIcon = ComponentType<TabsIconProps>;
 
 export interface TabsItem {
+    accessibilityLabel?: string;
     key: string;
     label: string;
+    labelStyle?: StyleProp<TextStyle>;
     activeIcon: TabsIcon;
     inactiveIcon: TabsIcon;
+    badge?: number | string;
+    badgeStyle?: StyleProp<TextStyle>;
+    testID?: string;
 }
 
 export interface TabsChangeEvent {
@@ -37,9 +47,10 @@ export interface JellyTabBarHeadlessProps {
     recording?: boolean;
     items: readonly TabsItem[];
     onTabChange?: (event: TabsChangeEvent) => void;
-    onTabPress?: (event: TabsChangeEvent) => void;
+    onTabLongPress?: (event: TabsChangeEvent) => void;
+    onTabPress?: (event: TabsChangeEvent) => boolean | void;
     opacity?: Partial<TabBarOpacity>;
-    selectedIndex?: number;
+    selectedIndex?: number | null;
     selectedBackdrop?: ReactNode;
     touchFeedbackEnabled?: boolean;
     touchFeedbackColor?: string;
@@ -64,9 +75,14 @@ export interface JellyNavigationState {
 }
 
 export interface JellyNavigationOptions {
+    href?: unknown;
+    tabBarAccessibilityLabel?: string;
     tabBarActiveBackgroundColor?: unknown;
     tabBarActiveTintColor?: unknown;
     tabBarBackground?: () => ReactNode;
+    tabBarBadge?: number | string;
+    tabBarBadgeStyle?: StyleProp<TextStyle>;
+    tabBarButtonTestID?: string;
     tabBarIcon?: (props: {
         color: string;
         focused: boolean;
@@ -75,6 +91,7 @@ export interface JellyNavigationOptions {
     tabBarInactiveBackgroundColor?: unknown;
     tabBarInactiveTintColor?: unknown;
     tabBarLabel?: unknown;
+    tabBarLabelStyle?: StyleProp<TextStyle>;
     tabBarShowLabel?: boolean;
     tabBarStyle?: unknown;
     title?: string;
@@ -103,11 +120,10 @@ export interface JellyNavigationHelpers {
     emit(event: JellyNavigationEvent): unknown;
 }
 
-export interface JellyTabBarProps
-    extends Omit<
-        JellyTabBarHeadlessProps,
-        "items" | "onTabChange" | "onTabPress" | "selectedIndex"
-    > {
+export interface JellyTabBarProps extends Omit<
+    JellyTabBarHeadlessProps,
+    "items" | "onTabChange" | "onTabLongPress" | "onTabPress" | "selectedIndex"
+> {
     containerStyle?: StyleProp<ViewStyle>;
     descriptors: Readonly<Record<string, JellyNavigationDescriptor>>;
     floating?: boolean;
