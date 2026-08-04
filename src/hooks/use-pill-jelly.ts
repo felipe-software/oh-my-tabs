@@ -11,6 +11,7 @@ import {
 const TAB_COUNT = 4;
 const TRACK_INSET = 4;
 const PRESSED_SCALE = 78 / 56;
+const SNAP_ON_POINTER_DOWN = true;
 
 /**
  * These are the exact stiffness/damping-ratio pairs used by
@@ -152,8 +153,9 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const trackInset = TRACK_INSET * geometryScale;
     const {
-        begin: beginDistortion,
-        end: endDistortion,
+        begin: beginTabbarInteraction,
+        end: endTabbarInteraction,
+        pressedStyle,
         setTrackWidth: setDistortionTrackWidth,
         tabbarStyle,
         update: updateDistortion,
@@ -327,7 +329,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
 
         isDragging.value = 0;
         rawPanelOffsetVelocity.value = 0;
-        endDistortion();
+        endTabbarInteraction();
 
         const tabWidth =
             (trackWidth.value - trackInset * 2) / TAB_COUNT;
@@ -362,9 +364,20 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
                 ? firstTouch.absoluteY
                 : firstTouch.absoluteX;
 
-            beginDistortion(localX, absoluteX);
+            beginTabbarInteraction(localX, absoluteX);
             downX.value = localX;
             movedDistance.value = 0;
+
+            const tabWidth =
+                (trackWidth.value - trackInset * 2) / TAB_COUNT;
+            if (SNAP_ON_POINTER_DOWN && tabWidth > 0) {
+                targetValue.value = clamp(
+                    Math.floor((localX - trackInset) / tabWidth),
+                    0,
+                    TAB_COUNT - 1,
+                );
+            }
+
             dragStartTarget.value = targetValue.value;
             dragStartPanelOffset.value = rawPanelOffset.value;
             isDragging.value = 1;
@@ -419,6 +432,7 @@ export const usePillJelly = (recording = false, displayScale = 1) => {
         gesture,
         panelStyle,
         pillMaskStyle,
+        pressedStyle,
         setTrackWidth,
         surfaceStyle,
         tabbarStyle,

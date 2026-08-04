@@ -7,6 +7,7 @@ import {
 } from "react-native-reanimated";
 
 const TRACK_HEIGHT = 64;
+const TABBAR_PRESSED_SCALE = 1.025;
 
 const VERTICAL_DRAG = {
     distortion: 0.08, // 0..1
@@ -71,6 +72,7 @@ export const useTabbarDistortion = (displayScale = 1) => {
     const translateY = useSharedValue(0);
     const dragOriginY = useSharedValue(0);
     const scaleX = useSharedValue(1);
+    const pressedScale = useSharedValue(1);
 
     const pointerInitialLocalX = useSharedValue(0);
     const pointerInitialAbsoluteX = useSharedValue(0);
@@ -81,8 +83,10 @@ export const useTabbarDistortion = (displayScale = 1) => {
 
         cancelAnimation(translateY);
         cancelAnimation(scaleX);
+        cancelAnimation(pressedScale);
 
         dragOriginY.value = translateY.value;
+        pressedScale.value = withSpring(TABBAR_PRESSED_SCALE, SPRING);
         pointerInitialLocalX.value = localX;
         pointerInitialAbsoluteX.value = absoluteX;
         transformOriginX.value = clamp(localX, 0, trackWidth.value);
@@ -117,6 +121,7 @@ export const useTabbarDistortion = (displayScale = 1) => {
 
         translateY.value = withSpring(0, SPRING);
         scaleX.value = withSpring(1, SPRING);
+        pressedScale.value = withSpring(1, SPRING);
     };
 
     const setTrackWidth = (width: number) => {
@@ -136,9 +141,14 @@ export const useTabbarDistortion = (displayScale = 1) => {
         ],
     }));
 
+    const pressedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: pressedScale.value }],
+    }));
+
     return {
         begin,
         end,
+        pressedStyle,
         setTrackWidth,
         tabbarStyle,
         update,
