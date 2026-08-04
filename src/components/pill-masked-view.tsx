@@ -6,9 +6,7 @@ import {
     StyleSheet,
     type ViewStyle,
 } from "react-native";
-import Animated, {
-    type AnimatedStyle,
-} from "react-native-reanimated";
+import Animated, { type AnimatedStyle } from "react-native-reanimated";
 
 export interface PillMaskedViewProps extends PropsWithChildren {
     animatedStyle: StyleProp<AnimatedStyle<ViewStyle>>;
@@ -25,11 +23,7 @@ const PillMaskElement = ({
     top,
 }: Omit<PillMaskedViewProps, "children" | "clipStyle">) => (
     <Animated.View
-        style={[
-            styles.mask,
-            { height, left, top },
-            animatedStyle,
-        ]}
+        style={[styles.mask, { height, left, top }, animatedStyle]}
     />
 );
 
@@ -43,9 +37,7 @@ export const PillMaskedView = ({
 }: PillMaskedViewProps) => {
     if (Platform.OS === "web") {
         return (
-            <Animated.View
-                style={[StyleSheet.absoluteFill, clipStyle]}
-            >
+            <Animated.View style={[StyleSheet.absoluteFill, clipStyle]}>
                 {children}
             </Animated.View>
         );
@@ -53,6 +45,7 @@ export const PillMaskedView = ({
 
     return (
         <NativeMaskedView
+            androidRenderingMode="software"
             style={StyleSheet.absoluteFill}
             maskElement={
                 <PillMaskElement

@@ -1,4 +1,4 @@
-import { DISTORTION, TABBAR_LAYOUT } from "../constants";
+import type { TabBarConfig } from "../constants";
 import { getPointerOrigin, rubberBand } from "../utils/animation";
 import {
     cancelAnimation,
@@ -9,14 +9,15 @@ import {
 } from "react-native-reanimated";
 
 export const useDistortion = (
+    config: TabBarConfig,
     displayScale = 1,
     touchFeedbackRadius = 0,
 ) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
-    const trackHeight = TABBAR_LAYOUT.trackHeight * geometryScale;
+    const { distortion, layout } = config;
+    const trackHeight = layout.trackHeight * geometryScale;
     const distanceForMaxDistortion =
-        DISTORTION.verticalDrag.distanceForMaxDistortion *
-        geometryScale;
+        distortion.verticalDrag.distanceForMaxDistortion * geometryScale;
 
     const trackWidth = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -30,11 +31,7 @@ export const useDistortion = (
     const pointerLocalY = useSharedValue(trackHeight / 2);
     const transformOriginX = useSharedValue(0);
 
-    const begin = (
-        localX: number,
-        localY: number,
-        absoluteX: number,
-    ) => {
+    const begin = (localX: number, localY: number, absoluteX: number) => {
         "worklet";
 
         cancelAnimation(translateY);
@@ -44,8 +41,8 @@ export const useDistortion = (
 
         dragOriginY.value = translateY.value;
         pressedScale.value = withSpring(
-            DISTORTION.pressedScale,
-            DISTORTION.spring,
+            distortion.pressedScale,
+            distortion.spring,
         );
         pointerInitialLocalX.value = localX;
         pointerInitialAbsoluteX.value = absoluteX;
@@ -53,7 +50,7 @@ export const useDistortion = (
         // moves and distorts it together with the surface.
         pointerLocalY.value = clamp(localY, 0, trackHeight);
         transformOriginX.value = clamp(localX, 0, trackWidth.value);
-        touchFeedbackOpacity.value = withSpring(1, DISTORTION.spring);
+        touchFeedbackOpacity.value = withSpring(1, distortion.spring);
     };
 
     const update = (
@@ -67,16 +64,16 @@ export const useDistortion = (
             rubberBand(
                 verticalTranslation,
                 trackHeight,
-                DISTORTION.verticalDrag.rubberBand,
-            ) * DISTORTION.verticalDrag.follow;
+                distortion.verticalDrag.rubberBand,
+            ) * distortion.verticalDrag.follow;
         const progress = Math.min(
-            Math.abs(verticalTranslation) / distanceForMaxDistortion,
+            Math.abs(verticalTranslation) /
+                Math.max(distanceForMaxDistortion, 0.0001),
             1,
         );
 
         translateY.value = dragOriginY.value + appliedTranslation;
-        scaleX.value =
-            1 - progress * DISTORTION.verticalDrag.distortion;
+        scaleX.value = 1 - progress * distortion.verticalDrag.distortion;
         transformOriginX.value =
             localX === null
                 ? getPointerOrigin(
@@ -91,21 +88,14 @@ export const useDistortion = (
     const end = () => {
         "worklet";
 
-        translateY.value = withSpring(0, DISTORTION.spring);
-        scaleX.value = withSpring(
-            1,
-            DISTORTION.spring,
-            (finished) => {
-                if (finished) {
-                    transformOriginX.value = trackWidth.value / 2;
-                }
-            },
-        );
-        pressedScale.value = withSpring(1, DISTORTION.spring);
-        touchFeedbackOpacity.value = withSpring(
-            0,
-            DISTORTION.spring,
-        );
+        translateY.value = withSpring(0, distortion.spring);
+        scaleX.value = withSpring(1, distortion.spring, (finished) => {
+            if (finished) {
+                transformOriginX.value = trackWidth.value / 2;
+            }
+        });
+        pressedScale.value = withSpring(1, distortion.spring);
+        touchFeedbackOpacity.value = withSpring(0, distortion.spring);
     };
 
     const setTrackWidth = (width: number) => {
@@ -117,21 +107,19 @@ export const useDistortion = (
     // updates. A centered CSS origin plus paired translations produces the
     // same moving pivot and works consistently on every platform.
     const tabbarStyle = useAnimatedStyle(() => ({
-        transformOrigin: [
-            "50%",
-            trackHeight / 2,
-            0,
-        ] as [string, number, number],
+        transformOrigin: ["50%", trackHeight / 2, 0] as [
+            string,
+            number,
+            number,
+        ],
         transform: [
             {
-                translateX:
-                    transformOriginX.value - trackWidth.value / 2,
+                translateX: transformOriginX.value - trackWidth.value / 2,
             },
             { translateY: translateY.value },
             { scaleX: scaleX.value },
             {
-                translateX:
-                    trackWidth.value / 2 - transformOriginX.value,
+                translateX: trackWidth.value / 2 - transformOriginX.value,
             },
         ],
     }));
@@ -147,23 +135,17 @@ export const useDistortion = (
             opacity: touchFeedbackOpacity.value,
             transform: [
                 {
-                    translateX:
-                        transformOriginX.value - touchFeedbackRadius,
+                    translateX: transformOriginX.value - touchFeedbackRadius,
                 },
                 {
-                    translateY:
-                        pointerLocalY.value - touchFeedbackRadius,
+                    translateY: pointerLocalY.value - touchFeedbackRadius,
                 },
             ],
         };
     };
 
-    const touchFeedbackStyle = useAnimatedStyle(
-        getTouchFeedbackStyle,
-    );
-    const selectedTouchFeedbackStyle = useAnimatedStyle(
-        getTouchFeedbackStyle,
-    );
+    const touchFeedbackStyle = useAnimatedStyle(getTouchFeedbackStyle);
+    const selectedTouchFeedbackStyle = useAnimatedStyle(getTouchFeedbackStyle);
 
     return {
         begin,
