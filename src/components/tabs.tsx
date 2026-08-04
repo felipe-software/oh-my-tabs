@@ -1,14 +1,13 @@
-import { TabItem } from "@/components/tab-item";
+import { TabItem, type TabsIconProps } from "./tab-item";
 import {
     DEFAULT_TAB_BAR_COLORS,
     DISTORTION,
     TABBAR_LAYOUT,
     type TabBarColors,
-} from "@/constants";
-import { usePillJelly } from "@/hooks/use-pill-jelly";
+} from "../constants";
+import { usePillJelly } from "../hooks/use-pill-jelly";
 import MaskedView from "@react-native-masked-view/masked-view";
-import { MaterialIcons } from "@react-native-vector-icons/material-icons/static";
-import { cloneElement } from "react";
+import { cloneElement, type ReactElement } from "react";
 import {
     StyleProp,
     StyleSheet,
@@ -26,10 +25,17 @@ import Svg, {
     Stop,
 } from "react-native-svg";
 
-interface TabsProps {
+export interface TabsItem {
+    icon: ReactElement<TabsIconProps>;
+    key: string;
+    label: string;
+}
+
+export interface TabsProps {
     colors?: Partial<TabBarColors>;
     displayScale?: number;
     recording?: boolean;
+    items: readonly TabsItem[];
     touchFeedbackEnabled?: boolean;
     touchFeedbackOpacity?: number;
     touchFeedbackScale?: number;
@@ -130,6 +136,7 @@ const TouchFeedback = ({
 export const Tabs = ({
     colors,
     displayScale = 1,
+    items,
     recording = false,
     touchFeedbackEnabled = true,
     touchFeedbackOpacity = DISTORTION.touchFeedback.opacity,
@@ -164,40 +171,17 @@ export const Tabs = ({
         normalizedTouchFeedbackOpacity *
         DISTORTION.touchFeedback.middleOpacityRatio;
 
-    const tabs = [
+    const tabs = items.map((item) => (
         <TabItem
             activeColor={resolvedColors.activeContent}
             displayScale={displayScale}
-            icon={<MaterialIcons name="home" size={iconSize} />}
+            icon={item.icon}
+            iconSize={iconSize}
             inactiveColor={resolvedColors.inactiveContent}
-            key="home"
-            text="Home"
-        />,
-        <TabItem
-            activeColor={resolvedColors.activeContent}
-            displayScale={displayScale}
-            icon={<MaterialIcons name="photo-camera" size={iconSize} />}
-            inactiveColor={resolvedColors.inactiveContent}
-            key="camera"
-            text="Camera"
-        />,
-        <TabItem
-            activeColor={resolvedColors.activeContent}
-            displayScale={displayScale}
-            icon={<MaterialIcons name="settings" size={iconSize} />}
-            inactiveColor={resolvedColors.inactiveContent}
-            key="settings"
-            text="Settings"
-        />,
-        <TabItem
-            activeColor={resolvedColors.activeContent}
-            displayScale={displayScale}
-            icon={<MaterialIcons name="format-paint" size={iconSize} />}
-            inactiveColor={resolvedColors.inactiveContent}
-            key="walls"
-            text="Walls"
-        />,
-    ];
+            key={item.key}
+            text={item.label}
+        />
+    ));
     const tabCount = tabs.length;
     const {
         activeItemStyle,

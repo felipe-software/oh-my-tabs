@@ -1,14 +1,14 @@
-import { PILL_JELLY, TABBAR_LAYOUT } from "@/constants";
-import { useDistortion } from "@/hooks/use-distortion";
+import { PILL_JELLY, TABBAR_LAYOUT } from "../constants";
+import { useDistortion } from "./use-distortion";
 import {
     getMaxTabIndex,
     getHorizontalPanelOffset,
     getTabWidth,
-} from "@/utils/animation";
+} from "../utils/animation";
 import {
     advancePillJellyFrame,
     type PillJellyFrameState,
-} from "@/utils/pill-jelly-animation";
+} from "../utils/pill-jelly-animation";
 import { usePanGesture } from "react-native-gesture-handler";
 import {
     clamp,

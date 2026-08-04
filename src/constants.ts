@@ -1,4 +1,4 @@
-import type { PillJellyFrameConfig } from "@/utils/pill-jelly-animation";
+import type { PillJellyFrameConfig } from "./utils/pill-jelly-animation";
 
 export const TABBAR_LAYOUT = {
     iconSize: 28,

@@ -1,5 +1,5 @@
-import { DISTORTION, TABBAR_LAYOUT } from "@/constants";
-import { getPointerOrigin, rubberBand } from "@/utils/animation";
+import { DISTORTION, TABBAR_LAYOUT } from "../constants";
+import { getPointerOrigin, rubberBand } from "../utils/animation";
 import {
     cancelAnimation,
     clamp,
