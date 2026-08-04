@@ -1,4 +1,4 @@
-# oh-my-tabs
+# react-native-jelly-tabs
 
 A jelly-like animated tab bar for React Native, built with Reanimated, Gesture Handler and Masked View
 
