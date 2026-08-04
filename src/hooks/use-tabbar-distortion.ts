@@ -7,13 +7,17 @@ import {
 } from "react-native-reanimated";
 
 const TRACK_HEIGHT = 64;
-const DISTORTION_THRESHOLD = 800;
 
-// Same pointer-anchored distortion model as oh-my-toast, tuned for the
-// subtler horizontal compression of the tabbar.
-const RUBBER_BAND_COEFFICIENT = 0.28 / 2;
-const VERTICAL_TRANSLATION_FACTOR = 0.25;
-const MAX_HORIZONTAL_COMPRESSION = 0.012;
+const VERTICAL_DRAG = {
+    distortion: 0.08, // 0..1
+    // distortion: 0.12, // 0..1
+    distanceForMaxDistortion: 500,
+
+    // Movement only: these change how much the tabbar follows the finger,
+    // without changing its width distortion.
+    follow: 0.25,
+    rubberBand: 0.28 / 2,
+} as const;
 
 const SPRING = {
     damping: 18,
@@ -60,7 +64,8 @@ const getPointerOrigin = (
 export const useTabbarDistortion = (displayScale = 1) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const trackHeight = TRACK_HEIGHT * geometryScale;
-    const distortionThreshold = DISTORTION_THRESHOLD * geometryScale;
+    const distanceForMaxDistortion =
+        VERTICAL_DRAG.distanceForMaxDistortion * geometryScale;
 
     const trackWidth = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -90,15 +95,15 @@ export const useTabbarDistortion = (displayScale = 1) => {
             rubberBand(
                 verticalTranslation,
                 trackHeight,
-                RUBBER_BAND_COEFFICIENT,
-            ) * VERTICAL_TRANSLATION_FACTOR;
+                VERTICAL_DRAG.rubberBand,
+            ) * VERTICAL_DRAG.follow;
         const progress = Math.min(
-            Math.abs(verticalTranslation) / distortionThreshold,
+            Math.abs(verticalTranslation) / distanceForMaxDistortion,
             1,
         );
 
         translateY.value = dragOriginY.value + appliedTranslation;
-        scaleX.value = 1 - progress * MAX_HORIZONTAL_COMPRESSION;
+        scaleX.value = 1 - progress * VERTICAL_DRAG.distortion;
         transformOriginX.value = getPointerOrigin(
             absoluteX,
             trackWidth.value,
