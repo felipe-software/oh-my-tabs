@@ -1,8 +1,5 @@
-import {
-    TABBAR_LAYOUT,
-    type TabBarColors,
-} from "../constants";
-import type { ComponentType } from "react";
+import { TABBAR_LAYOUT, type TabBarColors } from "../constants";
+import type { TabsIcon } from "../types";
 import {
     type StyleProp,
     StyleSheet,
@@ -12,30 +9,19 @@ import {
 } from "react-native";
 import Animated, { type AnimatedStyle } from "react-native-reanimated";
 
-export interface TabsIconProps {
-    color: string;
-    colors: Readonly<TabBarColors>;
-    isMasked: boolean;
-    isSelected: boolean;
-    opacity: number;
-    size: number;
-}
-
-export type TabsIcon = ComponentType<TabsIconProps>;
-
 export interface TabItemProps {
     activeColor?: string;
     activeOpacity?: number;
     displayScale?: number;
     colors: Readonly<TabBarColors>;
-    icon: TabsIcon;
+    activeIcon: TabsIcon;
+    inactiveIcon: TabsIcon;
     iconSize?: number;
     inactiveColor?: string;
     inactiveOpacity?: number;
     itemHeight?: number;
     text: string;
     isActive?: boolean;
-    isMasked?: boolean;
     animatedStyle?: StyleProp<AnimatedStyle<ViewStyle>>;
 }
 
@@ -44,19 +30,19 @@ export const TabItem = ({
     activeOpacity = 1,
     colors,
     displayScale = 1,
-    icon,
+    activeIcon,
+    inactiveIcon,
     iconSize,
     inactiveColor = "#afafaf",
     inactiveOpacity = 1,
     itemHeight = TABBAR_LAYOUT.itemHeight * displayScale,
     text,
     isActive = false,
-    isMasked = false,
     animatedStyle,
 }: TabItemProps) => {
     const color = isActive ? activeColor : inactiveColor;
     const opacity = isActive ? activeOpacity : inactiveOpacity;
-    const Icon = icon;
+    const Icon = isActive ? activeIcon : inactiveIcon;
 
     return (
         <Animated.View
@@ -77,8 +63,6 @@ export const TabItem = ({
                     <Icon
                         color={color}
                         colors={colors}
-                        isMasked={isMasked}
-                        isSelected={isActive}
                         opacity={opacity}
                         size={
                             iconSize ??
@@ -87,6 +71,7 @@ export const TabItem = ({
                     />
                 </View>
                 <Text
+                    selectable={false}
                     style={[
                         {
                             color,

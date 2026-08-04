@@ -1,55 +1,19 @@
-import { TabItem, type TabsIcon } from "./tab-item";
+import { TabItem } from "./tab-item";
 import {
     DEFAULT_TAB_BAR_COLORS,
     DEFAULT_TAB_BAR_OPACITY,
     resolveTabBarConfig,
-    type DeepPartial,
-    type TabBarConfig,
-    type TabBarColors,
-    type TabBarOpacity,
 } from "../constants";
+import type { TabsProps } from "../types";
 import { usePillJelly } from "../hooks/use-pill-jelly";
 import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
-import {
-    cloneElement,
-    useCallback,
-    useMemo,
-    useRef,
-    type ReactNode,
-} from "react";
+import { cloneElement, useCallback, useMemo, useRef } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
-export interface TabsItem {
-    icon: TabsIcon;
-    key: string;
-    label: string;
-}
-
-export interface TabsChangeEvent {
-    index: number;
-    item: TabsItem;
-}
-
-export interface TabsProps {
-    backdrop?: ReactNode;
-    colors?: Partial<TabBarColors>;
-    config?: DeepPartial<TabBarConfig>;
-    displayScale?: number;
-    recording?: boolean;
-    items: readonly TabsItem[];
-    onTabChange?: (event: TabsChangeEvent) => void;
-    opacity?: Partial<TabBarOpacity>;
-    selectedBackdrop?: ReactNode;
-    touchFeedbackEnabled?: boolean;
-    touchFeedbackColor?: string;
-    touchFeedbackOpacity?: number;
-    touchFeedbackScale?: number;
-}
-
-export const Tabs = ({
+export const JellyTabs = ({
     backdrop,
     colors,
     config,
@@ -128,10 +92,11 @@ export const Tabs = ({
         <TabItem
             activeColor={resolvedColors.activeContent}
             activeOpacity={activeContentOpacity}
+            activeIcon={item.activeIcon}
             colors={resolvedColors}
             displayScale={displayScale}
-            icon={item.icon}
             iconSize={iconSize}
+            inactiveIcon={item.inactiveIcon}
             inactiveColor={resolvedColors.inactiveContent}
             inactiveOpacity={inactiveContentOpacity}
             itemHeight={itemHeight}
@@ -320,7 +285,6 @@ export const Tabs = ({
                                         cloneElement(tab, {
                                             animatedStyle: activeItemStyle,
                                             isActive: true,
-                                            isMasked: true,
                                             key: `active-${index}`,
                                         }),
                                     )}
@@ -337,6 +301,8 @@ export const Tabs = ({
 const styles = StyleSheet.create({
     pressWrapper: {
         width: "100%",
+        // Stop the label/icon glyphs from being text-selected on web; harmless on native.
+        userSelect: "none",
     },
     track: {
         position: "relative",

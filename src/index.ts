@@ -1,10 +1,11 @@
+export { JellyTabs } from "./components/tabs";
 export {
-    Tabs,
     type TabsChangeEvent,
+    type TabsIcon,
+    type TabsIconProps,
     type TabsItem,
     type TabsProps,
-} from "./components/tabs";
-export { type TabsIcon, type TabsIconProps } from "./components/tab-item";
+} from "./types";
 export {
     PillMaskedView,
     type PillMaskedViewProps,

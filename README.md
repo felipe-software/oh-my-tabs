@@ -2,72 +2,85 @@
 
 A jelly-like animated tab bar for React Native, built with Reanimated, Gesture Handler and Masked View
 
-https://github.com/user-attachments/assets/51101532-fdac-44bb-9ad0-e75f9c3b0171
+<video src="https://github.com/user-attachments/assets/51101532-fdac-44bb-9ad0-e75f9c3b0171" autoplay muted controls></video>
 
 Demo at: https://jelly.felipe.software/
 
-!! Still under development !!
-This project is kinda focused on Android, but technically you can use it on web and iOS too
+> !! Still under development !!
+> This project is kinda focused on Android, but technically you can use it on web and iOS too
 
-## Install
-
-### Expo
-
-Let Expo select the native dependency versions that match the app's SDK:
+## Installation
 
 ```sh
-bun add react-native-jelly-tabs
-bunx expo install @react-native-masked-view/masked-view react-native-gesture-handler react-native-reanimated react-native-svg
+npm install react-native-jelly-tabs
 ```
 
-If Expo selects Reanimated 4, also run `bunx expo install react-native-worklets`. Do not install `react-native-worklets` with Reanimated 3. This distinction matters: Reanimated 4 requires Worklets and the New Architecture, while Reanimated 3 is the compatible branch for the Legacy Architecture.
+##### Dependencies
 
-### Bare React Native
-
-Install the version of each native dependency that supports your app's exact React Native version and architecture. There is no single Reanimated version that is correct for every React Native release, so Jelly Tabs deliberately does not recommend an arbitrary fixed version.
-
-1. Install `react-native-jelly-tabs`, Masked View, and SVG with your package manager.
-2. Select Reanimated from the official [Reanimated compatibility table](https://docs.swmansion.com/react-native-reanimated/docs/guides/compatibility/). Use its linked 3.x table for the Legacy Architecture.
-3. Select Gesture Handler from its official [React Native support table](https://github.com/software-mansion/react-native-gesture-handler#react-native-support).
-4. For Reanimated 4, install the matching `react-native-worklets` version shown in the Reanimated table. For Reanimated 3, do not install Worklets.
-
+Using Expo install
 ```sh
-bun add react-native-jelly-tabs @react-native-masked-view/masked-view react-native-svg
+npx expo install @react-native-masked-view/masked-view react-native-gesture-handler react-native-reanimated react-native-svg
 ```
 
-Jelly Tabs itself supports React Native `>=0.76`, Gesture Handler `>=2.25 <4`, and Reanimated `>=3.16 <5`. Those ranges describe the APIs used by this library; the selected native packages must also be mutually compatible with the consuming app's React Native version. In particular, Gesture Handler 3 requires React Native 0.82 or newer.
+Without expo install
+```sh
+npm install @react-native-masked-view/masked-view react-native-gesture-handler react-native-reanimated react-native-svg
+``` 
 
-After installing, follow the official setup for the selected Reanimated major and render the app under `GestureHandlerRootView`. Rebuild the native app whenever these dependencies change.
+
+Then rebuild the native app — `npx expo prebuild` on Expo, or `pod install` + a fresh build on bare React Native. Aside from that command, Expo and bare React Native are identical here.
+
+<details>
+<summary>Reanimated & Gesture Handler setup</summary> 
+
+**React Native Gesture Handler v2** needs extra steps to finalize its [installation instructions](https://docs.swmansion.com/react-native-gesture-handler/docs/fundamentals/installation). 
+Please **make sure** to wrap your App with `GestureHandlerRootView` when you've upgraded to React Native Gesture Handler ^2.
+
+**React Native Reanimated v3** needs extra steps to finalize its installation: [installation instructions](https://docs.swmansion.com/react-native-reanimated/docs/fundamentals/getting-started).
+</details>
+
+### Compatible versions
+
+Jelly Tabs works across a couple of major versions of each native dependency, so you can match whatever your app already uses:
+
+| Package | Supported range |
+| --- | --- |
+| React Native | `>=0.76` |
+| Gesture Handler | `>=2.25 <4` (Gesture Handler 3 needs React Native `>=0.82`) |
+| Reanimated | `>=3.16 <5` |
+
+These ranges describe the APIs Jelly Tabs uses. Your app's framework may pin a narrower version inside them — for example Expo SDK 57 recommends Gesture Handler `~2.32.0` — so prefer the version your framework recommends (`npx expo install` picks it for you) when it falls within the range above.
+
+### Icons
+
+Any component works as icons, since an icon is just a render function you provide (an SVG, an `expo-image`, an emoji `<Text>`, …). To use that specific library, install it and follow its own native setup (font linking on bare React Native, its config plugin on Expo):
+The snippets below use `@react-native-vector-icons/material-icons`.
 
 ## Usage
 
 ```tsx
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
-import {
-    Tabs,
-    type TabsIcon,
-    type TabsItem,
-} from "react-native-jelly-tabs";
+import { JellyTabs, type TabsItem } from "react-native-jelly-tabs";
 import { View } from "react-native";
-
-const HomeIcon: TabsIcon = ({ color, isSelected, size }) => (
-    <MaterialIcons
-        color={color}
-        name="home"
-        size={isSelected ? size + 2 : size}
-    />
-);
 
 const items: TabsItem[] = [
     {
         key: "home",
         label: "Home",
-        icon: HomeIcon,
+        activeIcon: ({ color, size }) => (
+            <MaterialIcons color={color} name="home" size={size} />
+        ),
+        inactiveIcon: ({ color, size }) => (
+            <MaterialIcons color={color} name="home" size={size} />
+        ),
     },
     {
         key: "settings",
         label: "Settings",
-        icon: ({ color, size }) => (
+        activeIcon: ({ color, size }) => (
+            <MaterialIcons color={color} name="settings" size={size} />
+        ),
+        inactiveIcon: ({ color, size }) => (
             <MaterialIcons color={color} name="settings" size={size} />
         ),
     },
@@ -79,46 +92,56 @@ export function BottomTabs({
     onNavigate: (key: string) => void;
 }) {
     return (
-        <View style={{ height: 68, width: "100%" }}>
-            <Tabs
+        <View style={{ height: 64, width: "100%" }}>
+            <JellyTabs
                 items={items}
                 onTabChange={({ item }) => onNavigate(item.key)}
-                colors={{
-                    surface: "#22211F",
-                    selectedSurface: "#F2EEE7",
-                    activeContent: "#11100F",
-                    inactiveContent: "#B8B4AD",
-                }}
-                opacity={{
-                    surface: 0.78,
-                    selectedSurface: 0.86,
-                }}
-                config={{
-                    layout: { trackHeight: 68 },
-                    pillJelly: { pressedScale: 1.25 },
-                    distortion: {
-                        verticalDrag: { distortion: 0.1 },
-                    },
-                }}
             />
         </View>
     );
 }
 ```
 
-Each item's `icon` is a render function. It receives the resolved `color`, `size`, `opacity`, full `colors` palette, `isSelected`, and `isMasked`, so an icon can use a different glyph or structure for the selected layer instead of relying on element cloning.
+Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette). Jelly Tabs draws the inactive icons in the track and reveals the active ones through the animated pill mask. `onTabChange` fires when the selected tab actually changes (tapping the already selected tab does not emit it).
 
-`onTabChange` runs on the JavaScript thread after the gesture finishes and the selected tab actually changes. Its event contains both `index` and the original `item`; tapping the already selected tab does not emit it.
+### Selection
 
-`colors` accepts solid React Native color strings for the track, selected pill, active content, and inactive content. Partial color objects fall back to the built-in palette.
+The first item (`items[0]`) is selected on mount. Selection is driven by user interaction with the bar — there is currently **no controlled `value` prop**, so you keep your own screen state in `onTabChange`, but changing that state elsewhere (a deep link, hardware back) updates your screen without moving the pill. If you need programmatic selection, open an issue.
 
-`opacity` controls those same four layers independently and is clamped from `0` to `1`. Opacity is applied to the rendered content rather than the mask, so the animated pill keeps a fully opaque clipping shape.
+### Sizing & safe area
 
-Every value from `TABBAR_LAYOUT`, `PILL_JELLY`, and `DISTORTION` can be overridden through the deep-partial `config` prop. `resolveTabBarConfig()` is exported when a consumer needs a complete mutable configuration object.
+Give the bar a wrapper whose height matches `config.layout.trackHeight` (default `64`) times `displayScale` (default `1`). The mask overscan is drawn with `overflow: visible`, so the pill can bulge past the wrapper without being clipped — the wrapper only needs to reserve the track's height. If you change `trackHeight` or `displayScale`, update the wrapper to match.
 
-`backdrop` and `selectedBackdrop` accept React nodes rendered below the track and selected-pill color layers. This keeps blur provider-agnostic: the Expo example uses `expo-blur`, while other apps can inject their platform blur component.
+Jelly Tabs adds **no safe-area inset of its own**. Handle the bottom inset outside the bar — e.g. put it inside a `SafeAreaView` with `edges={["bottom"]}`, or add `paddingBottom` from `useSafeAreaInsets()`.
 
-The touch feedback color follows `colors.selectedSurface` by default. Set `touchFeedbackColor` to override it independently.
+### With navigation
+
+Keep the displayed screen in sync with the bar by storing the selected key yourself:
+
+```tsx
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { JellyTabs } from "react-native-jelly-tabs";
+import { useState } from "react";
+import { View } from "react-native";
+
+export default function App() {
+    const [screen, setScreen] = useState(items[0].key);
+
+    return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+                <JellyTabs
+                    items={items}
+                    onTabChange={({ item }) => setScreen(item.key)} // Handle router navigation here
+                />
+            </SafeAreaView>
+        </GestureHandlerRootView>
+    );
+}
+```
+
+Colors, opacity, layout, jelly springs, distortion, backdrops and touch feedback are all configurable. See **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** for every prop and config value.
 
 ## Development
 
@@ -139,4 +162,4 @@ bun run example:android
 bun run example:ios
 ```
 
-Don't be afraid to open issues or Pull Requests :)
+Don't be afraid to open issues or Pull Requests, especially for documentation! :)

@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Jelly Tabs Simple",
+    "slug": "jelly-tabs-simple",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "jellytabssimple",
+    "ios": {
+      "bundleIdentifier": "software.felipe.jellytabssimple"
+    },
+    "android": {
+      "package": "software.felipe.jellytabssimple"
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-vector-icons/material-icons"
+    ]
+  }
+}
