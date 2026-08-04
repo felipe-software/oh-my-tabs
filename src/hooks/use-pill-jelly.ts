@@ -9,11 +9,12 @@ import {
     advancePillJellyFrame,
     type PillJellyFrameState,
 } from "../utils/pill-jelly-animation";
-import { usePanGesture } from "react-native-gesture-handler";
+import { Gesture } from "react-native-gesture-handler";
 import { Platform, type ViewStyle } from "react-native";
 import { useCallback, useMemo } from "react";
 import {
     clamp,
+    runOnJS,
     useAnimatedStyle,
     useDerivedValue,
     useFrameCallback,
@@ -28,6 +29,7 @@ export const usePillJelly = (
     recording = false,
     displayScale = 1,
     touchFeedbackRadius = 0,
+    onTabChange?: (index: number) => void,
 ) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const { layout, pillJelly } = config;
@@ -50,6 +52,7 @@ export const usePillJelly = (
     const value = useSharedValue(0);
     const valueVelocity = useSharedValue(0);
     const targetValue = useSharedValue(0);
+    const selectedIndex = useSharedValue(0);
 
     const filteredVelocity = useSharedValue(0);
     const filteredVelocityRate = useSharedValue(0);
@@ -209,6 +212,13 @@ export const usePillJelly = (
         nextIndex = clamp(nextIndex, 0, getMaxTabIndex(tabCount));
         targetValue.value = nextIndex;
         releasePending.value = 1;
+
+        if (tabCount > 0 && nextIndex !== selectedIndex.value) {
+            selectedIndex.value = nextIndex;
+            if (onTabChange) {
+                runOnJS(onTabChange)(nextIndex);
+            }
+        }
     };
 
     const beginGesture = (
@@ -240,11 +250,11 @@ export const usePillJelly = (
         rawPanelOffsetVelocity.value = 0;
     };
 
-    const gesture = usePanGesture({
-        minDistance: 0,
-        maxPointers: 1,
-        shouldCancelWhenOutside: false,
-        onTouchesDown: (event) => {
+    const gesture = Gesture.Pan()
+        .minDistance(0)
+        .maxPointers(1)
+        .shouldCancelWhenOutside(false)
+        .onTouchesDown((event) => {
             const firstTouch = event.changedTouches[0] ?? event.allTouches[0];
             if (!firstTouch) {
                 return;
@@ -263,8 +273,8 @@ export const usePillJelly = (
                 : firstTouch.absoluteX;
 
             beginGesture(localX, localY, absoluteX);
-        },
-        onUpdate: (event) => {
+        })
+        .onUpdate((event) => {
             const tabWidth = getTabWidth(
                 trackWidth.value,
                 trackInset,
@@ -300,9 +310,8 @@ export const usePillJelly = (
                 Math.abs(horizontalTranslation),
                 Math.abs(verticalTranslation),
             );
-        },
-        onFinalize: finishGesture,
-    });
+        })
+        .onFinalize(finishGesture);
 
     const setTrackWidth = (width: number) => {
         trackWidth.value = width;

@@ -1,4 +1,4 @@
-import { TabItem, type TabsIconProps } from "./tab-item";
+import { TabItem, type TabsIcon } from "./tab-item";
 import {
     DEFAULT_TAB_BAR_COLORS,
     DEFAULT_TAB_BAR_OPACITY,
@@ -13,9 +13,9 @@ import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
 import {
     cloneElement,
+    useCallback,
     useMemo,
     useRef,
-    type ReactElement,
     type ReactNode,
 } from "react";
 import { Platform, StyleSheet, View } from "react-native";
@@ -23,9 +23,14 @@ import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
 export interface TabsItem {
-    icon: ReactElement<TabsIconProps>;
+    icon: TabsIcon;
     key: string;
     label: string;
+}
+
+export interface TabsChangeEvent {
+    index: number;
+    item: TabsItem;
 }
 
 export interface TabsProps {
@@ -35,6 +40,7 @@ export interface TabsProps {
     displayScale?: number;
     recording?: boolean;
     items: readonly TabsItem[];
+    onTabChange?: (event: TabsChangeEvent) => void;
     opacity?: Partial<TabBarOpacity>;
     selectedBackdrop?: ReactNode;
     touchFeedbackEnabled?: boolean;
@@ -49,6 +55,7 @@ export const Tabs = ({
     config,
     displayScale = 1,
     items,
+    onTabChange,
     opacity,
     recording = false,
     selectedBackdrop,
@@ -107,10 +114,21 @@ export const Tabs = ({
         normalizedTouchFeedbackOpacity *
         resolvedConfig.distortion.touchFeedback.middleOpacityRatio;
 
+    const handleTabChange = useCallback(
+        (index: number) => {
+            const item = items[index];
+            if (item) {
+                onTabChange?.({ index, item });
+            }
+        },
+        [items, onTabChange],
+    );
+
     const tabs = items.map((item) => (
         <TabItem
             activeColor={resolvedColors.activeContent}
             activeOpacity={activeContentOpacity}
+            colors={resolvedColors}
             displayScale={displayScale}
             icon={item.icon}
             iconSize={iconSize}
@@ -142,6 +160,7 @@ export const Tabs = ({
         recording,
         displayScale,
         touchFeedbackRadius,
+        onTabChange ? handleTabChange : undefined,
     );
 
     return (
@@ -301,6 +320,7 @@ export const Tabs = ({
                                         cloneElement(tab, {
                                             animatedStyle: activeItemStyle,
                                             isActive: true,
+                                            isMasked: true,
                                             key: `active-${index}`,
                                         }),
                                     )}

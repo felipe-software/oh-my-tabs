@@ -9,7 +9,6 @@ import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
 import {
-    TABBAR_LAYOUT,
     Tabs,
     resolveTabBarConfig,
     type TabBarConfig,
@@ -62,25 +61,29 @@ const INITIAL_OPACITY: TabBarOpacity = { ...THEME_OPACITY };
 
 const ITEMS: TabsItem[] = [
     {
-        icon: <MaterialIcons name="home" size={TABBAR_LAYOUT.iconSize} />,
+        icon: ({ color, size }) => (
+            <MaterialIcons color={color} name="home" size={size} />
+        ),
         key: "home",
         label: "Home",
     },
     {
-        icon: (
-            <MaterialIcons name="photo-camera" size={TABBAR_LAYOUT.iconSize} />
+        icon: ({ color, size }) => (
+            <MaterialIcons color={color} name="photo-camera" size={size} />
         ),
         key: "camera",
         label: "Camera",
     },
     {
-        icon: <MaterialIcons name="settings" size={TABBAR_LAYOUT.iconSize} />,
+        icon: ({ color, size }) => (
+            <MaterialIcons color={color} name="settings" size={size} />
+        ),
         key: "settings",
         label: "Settings",
     },
     {
-        icon: (
-            <MaterialIcons name="format-paint" size={TABBAR_LAYOUT.iconSize} />
+        icon: ({ color, size }) => (
+            <MaterialIcons color={color} name="format-paint" size={size} />
         ),
         key: "walls",
         label: "Walls",
@@ -211,6 +214,9 @@ export default function HomeScreen() {
                             config={config}
                             displayScale={RECORDING_MODE ? recordingScale : 1}
                             items={ITEMS}
+                            onTabChange={({ item }) => {
+                                console.info("Selected tab:", item.key);
+                            }}
                             opacity={opacity}
                             recording={RECORDING_MODE}
                             selectedBackdrop={
