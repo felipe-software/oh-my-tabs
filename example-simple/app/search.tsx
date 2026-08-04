@@ -8,7 +8,7 @@ export default function SearchRoute() {
     <ScreenLayout
       eyebrow="Page 02"
       title="Search"
-      description="Each tap navigates through Expo Router when Jelly Tabs confirms a new tab in onTabChange."
+      description="Jelly Tabs reads and updates Expo Router's tab state without a manual navigation bridge."
     >
       <View style={styles.searchField}>
         <MaterialIcons color="#625d54" name="search" size={24} />

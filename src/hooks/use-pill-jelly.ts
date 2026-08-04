@@ -11,7 +11,7 @@ import {
 } from "../utils/pill-jelly-animation";
 import { Gesture } from "react-native-gesture-handler";
 import { Platform, type ViewStyle } from "react-native";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
     clamp,
     runOnJS,
@@ -29,7 +29,9 @@ export const usePillJelly = (
     recording = false,
     displayScale = 1,
     touchFeedbackRadius = 0,
+    controlledSelectedIndex?: number,
     onTabChange?: (index: number) => void,
+    onTabPress?: (index: number) => void,
 ) => {
     const geometryScale = displayScale > 0 ? displayScale : 1;
     const { layout, pillJelly } = config;
@@ -49,10 +51,14 @@ export const usePillJelly = (
         update: updateDistortion,
     } = useDistortion(config, geometryScale, touchFeedbackRadius);
     const trackWidth = useSharedValue(0);
-    const value = useSharedValue(0);
+    const initialSelectedIndex = Math.min(
+        Math.max(controlledSelectedIndex ?? 0, 0),
+        getMaxTabIndex(tabCount),
+    );
+    const value = useSharedValue(initialSelectedIndex);
     const valueVelocity = useSharedValue(0);
-    const targetValue = useSharedValue(0);
-    const selectedIndex = useSharedValue(0);
+    const targetValue = useSharedValue(initialSelectedIndex);
+    const selectedIndex = useSharedValue(initialSelectedIndex);
 
     const filteredVelocity = useSharedValue(0);
     const filteredVelocityRate = useSharedValue(0);
@@ -103,6 +109,30 @@ export const usePillJelly = (
         }),
         [],
     );
+
+    useEffect(() => {
+        if (controlledSelectedIndex === undefined) {
+            return;
+        }
+
+        const nextIndex = Math.min(
+            Math.max(controlledSelectedIndex, 0),
+            getMaxTabIndex(tabCount),
+        );
+        selectedIndex.value = nextIndex;
+        targetValue.value = nextIndex;
+        releasePending.value = 1;
+        pressTarget.value = 0;
+        shapeTarget.value = 1;
+    }, [
+        controlledSelectedIndex,
+        pressTarget,
+        releasePending,
+        selectedIndex,
+        shapeTarget,
+        tabCount,
+        targetValue,
+    ]);
 
     const frameCallback = useCallback(
         ({
@@ -212,6 +242,10 @@ export const usePillJelly = (
         nextIndex = clamp(nextIndex, 0, getMaxTabIndex(tabCount));
         targetValue.value = nextIndex;
         releasePending.value = 1;
+
+        if (tabCount > 0 && onTabPress) {
+            runOnJS(onTabPress)(nextIndex);
+        }
 
         if (tabCount > 0 && nextIndex !== selectedIndex.value) {
             selectedIndex.value = nextIndex;

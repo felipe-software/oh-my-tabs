@@ -1,12 +1,15 @@
 # Customization
 
-Every adjustable parameter of `<JellyTabs />`, taken straight from the exported TypeScript types. All props are optional except `items`; anything you omit falls back to the built-in defaults.
+Every adjustable parameter of `<JellyTabBarHeadless />`, taken straight from the exported TypeScript types. All props are optional except `items`; anything you omit falls back to the built-in defaults. `JellyTabBar` accepts the same visual props while sourcing its items and selection from React Navigation or Expo Router.
 
-## `<JellyTabs />` props
+## `<JellyTabBarHeadless />` props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `items` | `TabsItem[]` | — | The tabs to render (required). |
+| `maxWidth` | `DimensionValue` | `400` | Maximum track width. The bar stays centered inside wider parents. |
+| `selectedIndex` | `number` | uncontrolled | Controlled selected index. External changes animate the pill to the matching item. |
+| `onTabPress` | `(event: TabsChangeEvent) => void` | — | Runs after every completed tap or drag, including the already selected tab. |
 | `onTabChange` | `(event: TabsChangeEvent) => void` | — | Runs on the JS thread after the gesture finishes and the selected tab actually changes. Tapping the already selected tab does not emit it. |
 | `colors` | `Partial<TabBarColors>` | built-in palette | Solid color strings for each layer. See [Colors](#colors). |
 | `opacity` | `Partial<TabBarOpacity>` | all `1` | Per-layer opacity, clamped `0`–`1`. See [Opacity](#opacity). |
@@ -19,6 +22,18 @@ Every adjustable parameter of `<JellyTabs />`, taken straight from the exported 
 | `touchFeedbackOpacity` | `number` | `distortion.touchFeedback.opacity` | Overrides the touch feedback opacity. |
 | `touchFeedbackScale` | `number` | `distortion.touchFeedback.scale` | Overrides the touch feedback radius scale. |
 | `recording` | `boolean` | `false` | Deterministic mode for capturing clean recordings. |
+
+`JellyTabs` remains available as a deprecated alias for `JellyTabBarHeadless`.
+
+## `<JellyTabBar />` navigation props
+
+Pass `JellyTabBar` directly to the navigator's `tabBar` callback. The navigator supplies `state`, `descriptors`, `navigation` and `insets`; do not pass them manually.
+
+```tsx
+<Tabs tabBar={(props) => <JellyTabBar {...props} />} />
+```
+
+It supports `title`, string `tabBarLabel`, `tabBarIcon`, `tabBarShowLabel`, active/inactive tint and background colors, `tabBarBackground` and `tabBarStyle`. The centered bar has `maxWidth={400}` by default; change it with the `maxWidth` prop. Pass `floating` to absolutely position the bar over the screen, and use `containerStyle` for additional wrapper overrides. Function-valued `tabBarLabel`, badges, custom tab buttons and long-press handling are not currently rendered by the Jelly layout.
 
 ### `TabsItem`
 

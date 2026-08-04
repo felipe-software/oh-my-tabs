@@ -1,22 +1,22 @@
 # Simple example
 
-A minimal Expo app with three pages (`Home`, `Search`, `Profile`) driven by **Expo Router**, using `JellyTabs` as the custom bottom tab bar.
+A minimal Expo app with three pages (`Home`, `Search`, `Profile`) driven by **Expo Router**, using `JellyTabBar` as a drop-in custom bottom tab bar.
 
 ## How it works
 
 `app/_layout.tsx` renders Expo Router's `<Tabs>` layout with a custom `tabBar`:
 
 ```tsx
-<Tabs tabBar={(props) => <JellyTabBar {...props} />}>
+<Tabs tabBar={(props) => <JellyTabBar {...props} floating />}>
   <Tabs.Screen name="index" />
   <Tabs.Screen name="search" />
   <Tabs.Screen name="profile" />
 </Tabs>
 ```
 
-`src/JellyTabBar.tsx` renders `JellyTabs` and, on `onTabChange`, calls `navigation.navigate(route.name)` — so the router owns the routes (URLs, deep links, back button) while the bar drives the animation. The item `key`s match the route names.
+`JellyTabBar` reads the routes, labels, icons and selected index directly from Expo Router's tab state. There is no duplicated item array or manual `navigation.navigate()` bridge, and route changes from deep links, hardware back or imperative navigation keep the pill synchronized.
 
-> Jelly Tabs is uncontrolled: the pill follows taps on the bar. Navigating from somewhere other than the bar (a deep link, hardware back) changes the route but does not move the pill.
+This example enables `floating`, so the screens fill behind the absolutely positioned bar. The bar itself is centered with the library's default `maxWidth` of `400`.
 
 ## Run
 

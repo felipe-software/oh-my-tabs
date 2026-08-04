@@ -56,90 +56,60 @@ These ranges describe the APIs Jelly Tabs uses. Your app's framework may pin a n
 Any component works as icons, since an icon is just a render function you provide (an SVG, an `expo-image`, an emoji `<Text>`, …). To use that specific library, install it and follow its own native setup (font linking on bare React Native, its config plugin on Expo):
 The snippets below use `@react-native-vector-icons/material-icons`.
 
-## Usage
+## Usage with Expo Router or React Navigation
 
 ```tsx
 import { MaterialIcons } from "@react-native-vector-icons/material-icons";
-import { JellyTabs, type TabsItem } from "react-native-jelly-tabs";
-import { View } from "react-native";
+import { Tabs } from "expo-router";
+import { JellyTabBar } from "react-native-jelly-tabs";
 
-const items: TabsItem[] = [
-    {
-        key: "home",
-        label: "Home",
-        activeIcon: ({ color, size }) => (
-            <MaterialIcons color={color} name="home" size={size} />
-        ),
-        inactiveIcon: ({ color, size }) => (
-            <MaterialIcons color={color} name="home" size={size} />
-        ),
-    },
-    {
-        key: "settings",
-        label: "Settings",
-        activeIcon: ({ color, size }) => (
-            <MaterialIcons color={color} name="settings" size={size} />
-        ),
-        inactiveIcon: ({ color, size }) => (
-            <MaterialIcons color={color} name="settings" size={size} />
-        ),
-    },
-];
-
-export function BottomTabs({
-    onNavigate,
-}: {
-    onNavigate: (key: string) => void;
-}) {
+export default function TabLayout() {
     return (
-        <View style={{ height: 64, width: "100%" }}>
-            <JellyTabs
-                items={items}
-                onTabChange={({ item }) => onNavigate(item.key)}
+        <Tabs tabBar={(props) => <JellyTabBar {...props} floating />}>
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: "Home",
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialIcons color={color} name="home" size={size} />
+                    ),
+                }}
             />
-        </View>
+            <Tabs.Screen
+                name="settings"
+                options={{
+                    title: "Settings",
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialIcons color={color} name="settings" size={size} />
+                    ),
+                }}
+            />
+        </Tabs>
     );
 }
 ```
 
-Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette). Jelly Tabs draws the inactive icons in the track and reveals the active ones through the animated pill mask. `onTabChange` fires when the selected tab actually changes (tapping the already selected tab does not emit it).
+`JellyTabBar` is compatible with the `tabBar` prop from Expo Router's JavaScript tabs and React Navigation's bottom tabs. It reads the screens, labels, icons and selected index from the navigator, emits the standard `tabPress` event and keeps the pill synchronized with deep links, hardware back and programmatic navigation.
 
-### Selection
+Both components have a `maxWidth` of `400` by default and stay centered on wider screens. Override it with a number or dimension value, for example `<JellyTabBar {...props} maxWidth={560} />` or `maxWidth="100%"`.
 
-The first item (`items[0]`) is selected on mount. Selection is driven by user interaction with the bar — there is currently **no controlled `value` prop**, so you keep your own screen state in `onTabChange`, but changing that state elsewhere (a deep link, hardware back) updates your screen without moving the pill. If you need programmatic selection, open an issue.
+Pass `floating` to position the bar over the screen instead of reserving layout space. The screen will then fill behind the bar. Scrollable screens should add enough bottom content padding for their last item to remain reachable above the floating bar.
 
-### Sizing & safe area
+### Router-independent component
 
-Give the bar a wrapper whose height matches `config.layout.trackHeight` (default `64`) times `displayScale` (default `1`). The mask overscan is drawn with `overflow: visible`, so the pill can bulge past the wrapper without being clipped — the wrapper only needs to reserve the track's height. If you change `trackHeight` or `displayScale`, update the wrapper to match.
-
-Jelly Tabs adds **no safe-area inset of its own**. Handle the bottom inset outside the bar — e.g. put it inside a `SafeAreaView` with `edges={["bottom"]}`, or add `paddingBottom` from `useSafeAreaInsets()`.
-
-### With navigation
-
-Keep the displayed screen in sync with the bar by storing the selected key yourself:
+Use `JellyTabBarHeadless` when you want the animated component without any navigation integration:
 
 ```tsx
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { JellyTabs } from "react-native-jelly-tabs";
-import { useState } from "react";
-import { View } from "react-native";
-
-export default function App() {
-    const [screen, setScreen] = useState(items[0].key);
-
-    return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-                <JellyTabs
-                    items={items}
-                    onTabChange={({ item }) => setScreen(item.key)} // Handle router navigation here
-                />
-            </SafeAreaView>
-        </GestureHandlerRootView>
-    );
-}
+<JellyTabBarHeadless
+    items={items}
+    selectedIndex={selectedIndex}
+    onTabPress={({ index }) => setSelectedIndex(index)}
+/>
 ```
+
+Each item takes an `activeIcon` and an `inactiveIcon` render function (each receives `color`, `size`, `opacity` and the full `colors` palette). `selectedIndex` is optional; omit it for uncontrolled usage. The old `JellyTabs` export remains as a deprecated alias for `JellyTabBarHeadless`.
+
+`JellyTabBarHeadless` adds no safe-area inset of its own. Give it a wrapper whose height matches `config.layout.trackHeight` (default `64`) times `displayScale`. The navigation-aware `JellyTabBar` handles the navigator-provided safe-area insets automatically.
 
 Colors, opacity, layout, jelly springs, distortion, backdrops and touch feedback are all configurable. See **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** for every prop and config value.
 
