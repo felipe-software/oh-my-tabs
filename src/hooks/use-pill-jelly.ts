@@ -123,7 +123,9 @@ const easeOut = (input: number): number => {
     );
 };
 
-export const usePillJelly = () => {
+export const usePillJelly = (recording = false, displayScale = 1) => {
+    const geometryScale = displayScale > 0 ? displayScale : 1;
+    const trackInset = TRACK_INSET * geometryScale;
     const trackWidth = useSharedValue(0);
     const value = useSharedValue(0);
     const valueVelocity = useSharedValue(0);
@@ -262,13 +264,21 @@ export const usePillJelly = () => {
             return 0;
         }
 
-        return Math.sign(fraction) * 4 * easeOut(Math.abs(fraction));
+        return (
+            Math.sign(fraction) *
+            4 *
+            geometryScale *
+            easeOut(Math.abs(fraction))
+        );
     });
 
     const surfaceStyle = useAnimatedStyle(() => {
         const width = trackWidth.value;
         const scale =
-            width > 0 ? 1 + (16 / width) * pressProgress.value : 1;
+            width > 0
+                ? 1 +
+                  (16 * geometryScale * pressProgress.value) / width
+                : 1;
 
         return {
             transform: [
@@ -286,7 +296,7 @@ export const usePillJelly = () => {
     const pillMaskStyle = useAnimatedStyle(() => {
         const tabWidth = Math.max(
             0,
-            (trackWidth.value - TRACK_INSET * 2) / TAB_COUNT,
+            (trackWidth.value - trackInset * 2) / TAB_COUNT,
         );
         const velocity = filteredVelocity.value / 10;
         const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
@@ -314,13 +324,13 @@ export const usePillJelly = () => {
         rawPanelOffsetVelocity.value = 0;
 
         const tabWidth =
-            (trackWidth.value - TRACK_INSET * 2) / TAB_COUNT;
+            (trackWidth.value - trackInset * 2) / TAB_COUNT;
         let nextIndex: number;
 
         if (movedDistance.value < 4 && tabWidth > 0) {
             // A stationary gesture is a regular tab click. A moving gesture
             // remains relative, so every point of the bar acts as a handle.
-            nextIndex = Math.floor((downX.value - TRACK_INSET) / tabWidth);
+            nextIndex = Math.floor((downX.value - trackInset) / tabWidth);
         } else {
             nextIndex = Math.round(targetValue.value);
         }
@@ -341,7 +351,7 @@ export const usePillJelly = () => {
                 return;
             }
 
-            downX.value = firstTouch.x;
+            downX.value = recording ? firstTouch.y : firstTouch.x;
             movedDistance.value = 0;
             dragStartTarget.value = targetValue.value;
             dragStartPanelOffset.value = rawPanelOffset.value;
@@ -353,21 +363,25 @@ export const usePillJelly = () => {
         },
         onUpdate: (event) => {
             const tabWidth =
-                (trackWidth.value - TRACK_INSET * 2) / TAB_COUNT;
+                (trackWidth.value - trackInset * 2) / TAB_COUNT;
             if (tabWidth <= 0) {
                 return;
             }
 
+            const translation = recording
+                ? event.translationY
+                : event.translationX;
+
             targetValue.value = clamp(
-                dragStartTarget.value + event.translationX / tabWidth,
+                dragStartTarget.value + translation / tabWidth,
                 0,
                 TAB_COUNT - 1,
             );
             rawPanelOffset.value =
-                dragStartPanelOffset.value + event.translationX;
+                dragStartPanelOffset.value + translation;
             movedDistance.value = Math.max(
                 movedDistance.value,
-                Math.abs(event.translationX),
+                Math.abs(translation),
             );
         },
         onFinalize: finishGesture,

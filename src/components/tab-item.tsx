@@ -3,6 +3,7 @@ import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import Animated, { AnimatedStyle } from "react-native-reanimated";
 
 export interface TabItemProps {
+    displayScale?: number;
     icon: ReactElement;
     text: string;
     isActive?: boolean;
@@ -10,6 +11,7 @@ export interface TabItemProps {
 }
 
 export const TabItem = ({
+    displayScale = 1,
     icon,
     text,
     isActive = false,
@@ -18,20 +20,32 @@ export const TabItem = ({
     const color = isActive ? "#000000" : "#888888";
 
     return (
-        <Animated.View style={[styles.item, animatedStyle]}>
-            <View style={styles.content}>
-                <View style={styles.icon}>
+        <Animated.View
+            style={[
+                styles.item,
+                { height: 56 * displayScale },
+                animatedStyle,
+            ]}
+        >
+            <View style={[styles.content]}>
+                <View
+                    style={{
+                        transform: [{ translateY: 2 * displayScale }],
+                    }}
+                >
                     {cloneElement(icon as ReactElement<any>, {
                         color,
-                        weight: isActive ? "fill" : "duotone",
                     })}
                 </View>
                 <Text
                     style={[
-                        styles.label,
                         {
                             color,
+                            fontSize: 13 * displayScale,
                             fontWeight: isActive ? "700" : "400",
+                            transform: [
+                                { translateY: -4 * displayScale },
+                            ],
                         },
                     ]}
                 >
@@ -45,20 +59,11 @@ export const TabItem = ({
 const styles = StyleSheet.create({
     item: {
         flex: 1,
-        height: 56,
         zIndex: 1,
     },
     content: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 4,
-    },
-    icon: {
-        transform: [{ scale: 1.1 }, { translateY: 2 }],
-    },
-    label: {
-        fontSize: 14,
-        transform: [{ translateY: 2 }],
     },
 });
