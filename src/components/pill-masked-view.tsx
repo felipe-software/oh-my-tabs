@@ -45,7 +45,7 @@ export const PillMaskedView = ({
 
     return (
         <NativeMaskedView
-            androidRenderingMode="software"
+            androidRenderingMode="hardware"
             style={StyleSheet.absoluteFill}
             maskElement={
                 <PillMaskElement
