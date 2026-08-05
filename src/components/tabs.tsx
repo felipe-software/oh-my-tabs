@@ -165,8 +165,6 @@ export const JellyTabBarHeadless = ({
     const {
         activateTab,
         activeItemStyle,
-        activePillClipStyle,
-        activePillMaskStyle,
         gesture,
         panelStyle,
         pillClipStyle,
@@ -326,15 +324,6 @@ export const JellyTabBarHeadless = ({
                                         radius={touchFeedbackRadius}
                                     />
                                 )}
-                            </PillMaskedView>
-
-                            <PillMaskedView
-                                animatedStyle={activePillMaskStyle}
-                                clipStyle={activePillClipStyle}
-                                height={itemHeight}
-                                left={maskOverscanX + trackInset}
-                                top={maskOverscanY + trackInset}
-                            >
                                 <View
                                     style={[
                                         styles.selectedTabsRow,
