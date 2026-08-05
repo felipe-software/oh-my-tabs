@@ -11,6 +11,8 @@ import Animated, { type AnimatedStyle } from "react-native-reanimated";
 export interface PillMaskedViewProps extends PropsWithChildren {
     animatedStyle: StyleProp<AnimatedStyle<ViewStyle>>;
     clipStyle: StyleProp<AnimatedStyle<ViewStyle>>;
+    contentCanvasStyle?: StyleProp<AnimatedStyle<ViewStyle>>;
+    contentClipStyle?: StyleProp<AnimatedStyle<ViewStyle>>;
     height: number;
     left: number;
     top: number;
@@ -31,6 +33,8 @@ export const PillMaskedView = ({
     animatedStyle,
     children,
     clipStyle,
+    contentCanvasStyle,
+    contentClipStyle,
     height,
     left,
     top,
@@ -42,6 +46,21 @@ export const PillMaskedView = ({
             </Animated.View>
         );
     }
+
+    const content =
+        Platform.OS === "android" &&
+        contentClipStyle &&
+        contentCanvasStyle ? (
+            <Animated.View style={[styles.contentClip, contentClipStyle]}>
+                <Animated.View
+                    style={[styles.contentCanvas, contentCanvasStyle]}
+                >
+                    {children}
+                </Animated.View>
+            </Animated.View>
+        ) : (
+            children
+        );
 
     return (
         <NativeMaskedView
@@ -56,7 +75,7 @@ export const PillMaskedView = ({
                 />
             }
         >
-            {children}
+            {content}
         </NativeMaskedView>
     );
 };
@@ -66,5 +85,12 @@ const styles = StyleSheet.create({
         position: "absolute",
         backgroundColor: "#000000",
         borderRadius: 999,
+    },
+    contentCanvas: {
+        position: "absolute",
+    },
+    contentClip: {
+        borderRadius: 999,
+        position: "absolute",
     },
 });

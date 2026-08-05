@@ -168,6 +168,8 @@ export const JellyTabBarHeadless = ({
         gesture,
         panelStyle,
         pillClipStyle,
+        pillContentCanvasStyle,
+        pillContentClipStyle,
         pillMaskStyle,
         pressedStyle,
         selectedTouchFeedbackStyle,
@@ -288,6 +290,8 @@ export const JellyTabBarHeadless = ({
                             <PillMaskedView
                                 animatedStyle={pillMaskStyle}
                                 clipStyle={pillClipStyle}
+                                contentCanvasStyle={pillContentCanvasStyle}
+                                contentClipStyle={pillContentClipStyle}
                                 height={itemHeight}
                                 left={maskOverscanX + trackInset}
                                 top={maskOverscanY + trackInset}

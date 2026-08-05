@@ -22,6 +22,7 @@ import {
 } from "react-native-reanimated";
 
 const IS_WEB = Platform.OS === "web";
+const IS_ANDROID = Platform.OS === "android";
 
 const getControlledSelectedIndex = (
     selectedIndex: number | null,
@@ -78,6 +79,13 @@ export const usePillJelly = (
     const filteredVelocity = useSharedValue(0);
     const filteredVelocityRate = useSharedValue(0);
 
+    const maskFreezeActive = useSharedValue(0);
+    const maskFreezeElapsed = useSharedValue(0);
+    const maskValue = useSharedValue(initialPillPosition);
+    const maskScaleX = useSharedValue(1);
+    const maskScaleY = useSharedValue(1);
+    const maskVelocity = useSharedValue(0);
+
     const pressProgress = useSharedValue(0);
     const pressProgressRate = useSharedValue(0);
     const pressTarget = useSharedValue(0);
@@ -110,7 +118,14 @@ export const usePillJelly = (
             baseScaleYRate,
             filteredVelocity,
             filteredVelocityRate,
+            freezeMaskDuringShrink: IS_ANDROID,
             isDragging,
+            maskFreezeActive,
+            maskFreezeElapsed,
+            maskScaleX,
+            maskScaleY,
+            maskValue,
+            maskVelocity,
             pressProgress,
             pressProgressRate,
             pressTarget,
@@ -172,6 +187,8 @@ export const usePillJelly = (
             controlledSelectedIndex,
             tabCount,
         );
+        const targetChanged =
+            nextIndex >= 0 && nextIndex !== targetValue.value;
         selectedIndex.value = nextIndex;
         if (nextIndex >= 0) {
             targetValue.value = nextIndex;
@@ -179,12 +196,16 @@ export const usePillJelly = (
         releasePending.value = 1;
         pressTarget.value = 0;
         shapeTarget.value = 1;
+        if (targetChanged) {
+            maskFreezeActive.value = 0;
+        }
         setFrameLoopActive(true);
         setFrameLoopActive(false);
     }, [
         controlledSelectedIndex,
         pressTarget,
         releasePending,
+        maskFreezeActive,
         selectedIndex,
         setFrameLoopActive,
         shapeTarget,
@@ -208,21 +229,81 @@ export const usePillJelly = (
         "worklet";
 
         const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
-        const velocity = filteredVelocity.value / 10;
+        const velocity = maskVelocity.value / 10;
         const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
         const scaleYCorrection = clamp(velocity * 0.25, -0.2, 0.2);
 
         return {
             width: tabWidth,
             transform: [
-                { translateX: value.value * tabWidth },
-                { scaleX: baseScaleX.value / (1 - scaleXCorrection) },
-                { scaleY: baseScaleY.value * (1 - scaleYCorrection) },
+                { translateX: maskValue.value * tabWidth },
+                { scaleX: maskScaleX.value / (1 - scaleXCorrection) },
+                { scaleY: maskScaleY.value * (1 - scaleYCorrection) },
             ],
         };
     };
 
     const pillMaskStyle = useAnimatedStyle(getPillMaskStyle);
+
+    const pillContentClipStyle = useAnimatedStyle(() => {
+        const canvasWidth = trackWidth.value + maskOverscanX * 2;
+        const canvasHeight = trackHeight + maskOverscanY * 2;
+        if (maskFreezeActive.value !== 1) {
+            return {
+                height: canvasHeight,
+                left: 0,
+                overflow: "visible" as const,
+                top: 0,
+                transform: [
+                    { translateX: 0 },
+                    { scaleX: 1 },
+                    { scaleY: 1 },
+                ],
+                width: canvasWidth,
+            };
+        }
+
+        const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
+        const velocity = filteredVelocity.value / 10;
+        const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
+        const scaleYCorrection = clamp(velocity * 0.25, -0.2, 0.2);
+
+        return {
+            height: itemHeight,
+            left: maskOverscanX + trackInset,
+            overflow: "hidden" as const,
+            top: maskOverscanY + trackInset,
+            transform: [
+                { translateX: value.value * tabWidth },
+                { scaleX: baseScaleX.value / (1 - scaleXCorrection) },
+                { scaleY: baseScaleY.value * (1 - scaleYCorrection) },
+            ],
+            width: tabWidth,
+        };
+    });
+
+    const pillContentCanvasStyle = useAnimatedStyle(() => {
+        const canvasWidth = trackWidth.value + maskOverscanX * 2;
+        const canvasHeight = trackHeight + maskOverscanY * 2;
+        if (maskFreezeActive.value !== 1) {
+            return {
+                height: canvasHeight,
+                left: 0,
+                top: 0,
+                transform: [{ translateX: 0 }],
+                width: canvasWidth,
+            };
+        }
+
+        const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
+        return {
+            height: canvasHeight,
+            left: -(maskOverscanX + trackInset),
+            top: -(maskOverscanY + trackInset),
+            transform: [{ translateX: -value.value * tabWidth }],
+            width: canvasWidth,
+        };
+    });
 
     const getPillClipStyle = () => {
         "worklet";
@@ -278,6 +359,7 @@ export const usePillJelly = (
                 releasePending.value = 1;
                 pressTarget.value = 0;
                 shapeTarget.value = 1;
+                maskFreezeActive.value = 0;
                 return;
             }
 
@@ -288,6 +370,7 @@ export const usePillJelly = (
         },
         [
             controlledSelectedIndex,
+            maskFreezeActive,
             onTabChange,
             onTabPress,
             pressTarget,
@@ -311,12 +394,14 @@ export const usePillJelly = (
             );
             targetValue.value = nextIndex;
             releasePending.value = 1;
+            maskFreezeActive.value = 0;
             setFrameLoopActive(true);
             setFrameLoopActive(false);
             confirmTabPressOnJS(nextIndex);
         },
         [
             confirmTabPressOnJS,
+            maskFreezeActive,
             releasePending,
             setFrameLoopActive,
             tabCount,
@@ -375,6 +460,7 @@ export const usePillJelly = (
         dragStartPanelOffset.value = rawPanelOffset.value;
         isDragging.value = 1;
         releasePending.value = 0;
+        maskFreezeActive.value = 0;
         pressTarget.value = 1;
         shapeTarget.value = pillJelly.pressedScale;
         rawPanelOffsetVelocity.value = 0;
@@ -495,6 +581,8 @@ export const usePillJelly = (
         gesture,
         panelStyle,
         pillClipStyle,
+        pillContentCanvasStyle,
+        pillContentClipStyle,
         pillMaskStyle,
         pressedStyle,
         selectedTouchFeedbackStyle,

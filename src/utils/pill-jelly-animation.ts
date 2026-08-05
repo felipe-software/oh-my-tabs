@@ -8,6 +8,10 @@ import type { SharedValue } from "react-native-reanimated";
 
 type SharedNumber = SharedValue<number>;
 
+const MASK_FREEZE_SCALE_EPSILON = 0.003;
+const MASK_FREEZE_RATE_EPSILON = 0.05;
+const MASK_FREEZE_MAX_SECONDS = 0.45;
+
 export interface PillJellyFrameState {
     baseScaleX: SharedNumber;
     baseScaleXRate: SharedNumber;
@@ -15,7 +19,14 @@ export interface PillJellyFrameState {
     baseScaleYRate: SharedNumber;
     filteredVelocity: SharedNumber;
     filteredVelocityRate: SharedNumber;
+    freezeMaskDuringShrink: boolean;
     isDragging: SharedNumber;
+    maskFreezeActive: SharedNumber;
+    maskFreezeElapsed: SharedNumber;
+    maskScaleX: SharedNumber;
+    maskScaleY: SharedNumber;
+    maskValue: SharedNumber;
+    maskVelocity: SharedNumber;
     pressProgress: SharedNumber;
     pressProgressRate: SharedNumber;
     pressTarget: SharedNumber;
@@ -134,6 +145,17 @@ const settleReleasedIndicator = (
 
     state.releasePending.value = 0;
     state.pressTarget.value = 0;
+    if (state.freezeMaskDuringShrink) {
+        // NativeMaskedView rebuilds its mask texture whenever its geometry
+        // changes. Keep the expanded mask stable while the shape spring
+        // returns to rest, then invalidate it once with the final geometry.
+        state.maskValue.value = state.value.value;
+        state.maskScaleX.value = state.baseScaleX.value;
+        state.maskScaleY.value = state.baseScaleY.value;
+        state.maskVelocity.value = state.filteredVelocity.value;
+        state.maskFreezeElapsed.value = 0;
+        state.maskFreezeActive.value = 1;
+    }
     state.shapeTarget.value = 1;
 };
 
@@ -175,6 +197,44 @@ const advanceShape = (
         config.springs.scaleY,
         deltaSeconds,
     );
+
+    if (state.maskFreezeActive.value === 1) {
+        state.maskFreezeElapsed.value += deltaSeconds;
+    }
+
+    const maskShrinkAtRest =
+        Math.abs(state.baseScaleX.value - 1) < MASK_FREEZE_SCALE_EPSILON &&
+        Math.abs(state.baseScaleXRate.value) < MASK_FREEZE_RATE_EPSILON &&
+        Math.abs(state.baseScaleY.value - 1) < MASK_FREEZE_SCALE_EPSILON &&
+        Math.abs(state.baseScaleYRate.value) < MASK_FREEZE_RATE_EPSILON;
+    if (
+        state.maskFreezeActive.value === 1 &&
+        (maskShrinkAtRest ||
+            state.maskFreezeElapsed.value >= MASK_FREEZE_MAX_SECONDS)
+    ) {
+        state.baseScaleX.value = 1;
+        state.baseScaleXRate.value = 0;
+        state.baseScaleY.value = 1;
+        state.baseScaleYRate.value = 0;
+        state.filteredVelocity.value = 0;
+        state.filteredVelocityRate.value = 0;
+        state.value.value = state.targetValue.value;
+        state.valueVelocity.value = 0;
+        state.maskFreezeActive.value = 0;
+    }
+};
+
+const syncMaskGeometry = (state: PillJellyFrameState) => {
+    "worklet";
+
+    if (state.maskFreezeActive.value === 1) {
+        return;
+    }
+
+    state.maskValue.value = state.value.value;
+    state.maskScaleX.value = state.baseScaleX.value;
+    state.maskScaleY.value = state.baseScaleY.value;
+    state.maskVelocity.value = state.filteredVelocity.value;
 };
 
 export const advancePillJellyFrame = (
@@ -197,4 +257,5 @@ export const advancePillJellyFrame = (
     settleReleasedIndicator(state, config, tabCount);
     advancePress(state, config, deltaSeconds);
     advanceShape(state, config, deltaSeconds);
+    syncMaskGeometry(state);
 };
