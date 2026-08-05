@@ -511,6 +511,8 @@ export const ColorCustomizer = ({
                                             backgroundColor:
                                                 palette.colors.selectedSurface,
                                         },
+                                        palette.label === "Mono" &&
+                                            styles.paletteButtonLight,
                                         selected && styles.paletteButtonActive,
                                         pressed && styles.pressed,
                                     ]}
@@ -1075,6 +1077,9 @@ const styles = StyleSheet.create({
     },
     paletteButtonActive: {
         borderColor: "#0F172A",
+    },
+    paletteButtonLight: {
+        borderColor: "#CBD5E1",
     },
     colorRow: {
         alignItems: "center",
