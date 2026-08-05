@@ -201,7 +201,6 @@ export const usePillJelly = (
     };
 
     const pillMaskStyle = useAnimatedStyle(getPillMaskStyle);
-    const activePillMaskStyle = useAnimatedStyle(getPillMaskStyle);
 
     const getPillClipStyle = () => {
         "worklet";
@@ -231,7 +230,6 @@ export const usePillJelly = (
     };
 
     const pillClipStyle = useAnimatedStyle(getPillClipStyle);
-    const activePillClipStyle = useAnimatedStyle(getPillClipStyle);
 
     const activeItemStyle = useAnimatedStyle(() => {
         const scale = 1 + 0.2 * pressProgress.value;
@@ -460,8 +458,6 @@ export const usePillJelly = (
     return {
         activateTab,
         activeItemStyle,
-        activePillClipStyle,
-        activePillMaskStyle,
         gesture,
         panelStyle,
         pillClipStyle,
