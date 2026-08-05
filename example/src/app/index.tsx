@@ -49,12 +49,12 @@ const randomBackgroundForScreen = (): ImageSource => {
     );
 };
 const INITIAL_BLUR: BlurConfig = { pill: 20, track: 35 };
-// Default look: same recipe as the "Blue" preset (violet layout, blue pill).
+// Default look: same recipe as the "Amber" preset.
 const INITIAL_COLORS: TabBarColors = {
-    activeContent: "#EFF6FF",
-    inactiveContent: "#A1A1AA",
-    selectedSurface: "#2563EB",
-    surface: "#18181B",
+    activeContent: "#451A03",
+    inactiveContent: "#A8A29E",
+    selectedSurface: "#F59E0B",
+    surface: "#1C1917",
 };
 const INITIAL_TOUCH_FEEDBACK_COLOR = INITIAL_COLORS.selectedSurface;
 const INITIAL_OPACITY: TabBarOpacity = { ...THEME_OPACITY };
