@@ -168,7 +168,7 @@ export const usePillJelly = (
         },
         [frameState, pillJelly.frameConfig, tabCount],
     );
-    useFrameCallback(frameCallback);
+    const frameLoop = useFrameCallback(frameCallback, false);
 
     const panelOffset = useDerivedValue(() => {
         return getHorizontalPanelOffset(
@@ -354,6 +354,7 @@ export const usePillJelly = (
         .minDistance(0)
         .maxPointers(1)
         .shouldCancelWhenOutside(false)
+        .onBegin(() => runOnJS(frameLoop.setActive)(true))
         .onTouchesDown((event) => {
             const firstTouch = event.changedTouches[0] ?? event.allTouches[0];
             if (!firstTouch) {
@@ -411,7 +412,10 @@ export const usePillJelly = (
                 Math.abs(verticalTranslation),
             );
         })
-        .onFinalize(finishGesture);
+        .onFinalize(() => {
+            finishGesture();
+            runOnJS(frameLoop.setActive)(false);
+        });
 
     const longPressGesture = Gesture.LongPress()
         .enabled(tabCount > 0 && Boolean(onTabLongPress))
