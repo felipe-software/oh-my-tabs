@@ -11,7 +11,7 @@ import {
 } from "../utils/pill-jelly-animation";
 import { Gesture } from "react-native-gesture-handler";
 import { Platform, type ViewStyle } from "react-native";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
     clamp,
     runOnJS,
@@ -125,32 +125,6 @@ export const usePillJelly = (
         [],
     );
 
-    useEffect(() => {
-        if (controlledSelectedIndex === undefined) {
-            return;
-        }
-
-        const nextIndex = getControlledSelectedIndex(
-            controlledSelectedIndex,
-            tabCount,
-        );
-        selectedIndex.value = nextIndex;
-        if (nextIndex >= 0) {
-            targetValue.value = nextIndex;
-        }
-        releasePending.value = 1;
-        pressTarget.value = 0;
-        shapeTarget.value = 1;
-    }, [
-        controlledSelectedIndex,
-        pressTarget,
-        releasePending,
-        selectedIndex,
-        shapeTarget,
-        tabCount,
-        targetValue,
-    ]);
-
     const frameCallback = useCallback(
         ({
             timeSincePreviousFrame,
@@ -169,6 +143,54 @@ export const usePillJelly = (
         [frameState, pillJelly.frameConfig, tabCount],
     );
     const frameLoop = useFrameCallback(frameCallback, false);
+    const frameLoopStopTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+        null,
+    );
+    const setFrameLoopActive = useCallback(
+        (active: boolean) => {
+            if (frameLoopStopTimeout.current !== null) {
+                clearTimeout(frameLoopStopTimeout.current);
+            }
+            if (active) {
+                frameLoop.setActive(true);
+            } else {
+                frameLoopStopTimeout.current = setTimeout(() => {
+                    frameLoop.setActive(false);
+                    frameLoopStopTimeout.current = null;
+                }, 500);
+            }
+        },
+        [frameLoop],
+    );
+
+    useEffect(() => {
+        if (controlledSelectedIndex === undefined) {
+            return;
+        }
+
+        const nextIndex = getControlledSelectedIndex(
+            controlledSelectedIndex,
+            tabCount,
+        );
+        selectedIndex.value = nextIndex;
+        if (nextIndex >= 0) {
+            targetValue.value = nextIndex;
+        }
+        releasePending.value = 1;
+        pressTarget.value = 0;
+        shapeTarget.value = 1;
+        setFrameLoopActive(true);
+        setFrameLoopActive(false);
+    }, [
+        controlledSelectedIndex,
+        pressTarget,
+        releasePending,
+        selectedIndex,
+        setFrameLoopActive,
+        shapeTarget,
+        tabCount,
+        targetValue,
+    ]);
 
     const panelOffset = useDerivedValue(() => {
         return getHorizontalPanelOffset(
@@ -289,9 +311,17 @@ export const usePillJelly = (
             );
             targetValue.value = nextIndex;
             releasePending.value = 1;
+            setFrameLoopActive(true);
+            setFrameLoopActive(false);
             confirmTabPressOnJS(nextIndex);
         },
-        [confirmTabPressOnJS, releasePending, tabCount, targetValue],
+        [
+            confirmTabPressOnJS,
+            releasePending,
+            setFrameLoopActive,
+            tabCount,
+            targetValue,
+        ],
     );
 
     const finishGesture = () => {
@@ -354,7 +384,7 @@ export const usePillJelly = (
         .minDistance(0)
         .maxPointers(1)
         .shouldCancelWhenOutside(false)
-        .onBegin(() => runOnJS(frameLoop.setActive)(true))
+        .onBegin(() => runOnJS(setFrameLoopActive)(true))
         .onTouchesDown((event) => {
             const firstTouch = event.changedTouches[0] ?? event.allTouches[0];
             if (!firstTouch) {
@@ -414,7 +444,7 @@ export const usePillJelly = (
         })
         .onFinalize(() => {
             finishGesture();
-            runOnJS(frameLoop.setActive)(false);
+            runOnJS(setFrameLoopActive)(false);
         });
 
     const longPressGesture = Gesture.LongPress()
