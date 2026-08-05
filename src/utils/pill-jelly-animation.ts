@@ -40,6 +40,56 @@ export interface PillJellyFrameConfig {
     };
 }
 
+const isSettled = (value: number, velocity: number, target: number) => {
+    "worklet";
+
+    return value === target && velocity === 0;
+};
+
+export const isPillJellyFrameAtRest = (
+    state: PillJellyFrameState,
+    tabCount: number,
+) => {
+    "worklet";
+
+    const targetValue = Math.min(
+        Math.max(state.targetValue.value, 0),
+        getMaxTabIndex(tabCount),
+    );
+
+    return (
+        state.isDragging.value === 0 &&
+        state.releasePending.value === 0 &&
+        state.targetValue.value === targetValue &&
+        isSettled(state.value.value, state.valueVelocity.value, targetValue) &&
+        isSettled(
+            state.filteredVelocity.value,
+            state.filteredVelocityRate.value,
+            0,
+        ) &&
+        isSettled(
+            state.rawPanelOffset.value,
+            state.rawPanelOffsetVelocity.value,
+            0,
+        ) &&
+        isSettled(
+            state.pressProgress.value,
+            state.pressProgressRate.value,
+            state.pressTarget.value,
+        ) &&
+        isSettled(
+            state.baseScaleX.value,
+            state.baseScaleXRate.value,
+            state.shapeTarget.value,
+        ) &&
+        isSettled(
+            state.baseScaleY.value,
+            state.baseScaleYRate.value,
+            state.shapeTarget.value,
+        )
+    );
+};
+
 const advancePosition = (
     state: PillJellyFrameState,
     config: PillJellyFrameConfig,

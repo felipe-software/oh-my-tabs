@@ -7,6 +7,7 @@ import {
 } from "../utils/animation";
 import {
     advancePillJellyFrame,
+    isPillJellyFrameAtRest,
     type PillJellyFrameState,
 } from "../utils/pill-jelly-animation";
 import { Gesture } from "react-native-gesture-handler";
@@ -15,6 +16,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import {
     clamp,
     runOnJS,
+    useAnimatedReaction,
     useAnimatedStyle,
     useDerivedValue,
     useFrameCallback,
@@ -168,7 +170,25 @@ export const usePillJelly = (
         },
         [frameState, pillJelly.frameConfig, tabCount],
     );
-    useFrameCallback(frameCallback);
+    const frameLoop = useFrameCallback(frameCallback, false);
+    const setFrameLoopActive = useCallback(
+        (active: boolean) => {
+            if (frameLoop.isActive !== active) {
+                frameLoop.setActive(active);
+            }
+        },
+        [frameLoop],
+    );
+
+    useAnimatedReaction(
+        () => isPillJellyFrameAtRest(frameState, tabCount),
+        (atRest, wasAtRest) => {
+            if (atRest !== wasAtRest) {
+                runOnJS(setFrameLoopActive)(!atRest);
+            }
+        },
+        [frameState, setFrameLoopActive, tabCount],
+    );
 
     const panelOffset = useDerivedValue(() => {
         return getHorizontalPanelOffset(
