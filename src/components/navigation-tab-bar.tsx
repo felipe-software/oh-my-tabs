@@ -80,8 +80,7 @@ const resolveIcon = (
 const asColorString = (value: unknown) =>
     typeof value === "string" ? value : undefined;
 
-const areRoutesEqual = (a: { key: string }, b: { key: string }) =>
-    a.key === b.key;
+const areRoutesEqual = <T,>(a: T, b: T) => a === b;
 
 const areItemsEqual = (a: TabsItem, b: TabsItem) =>
     a.key === b.key &&
