@@ -1,6 +1,7 @@
 import { DEFAULT_TAB_BAR_COLORS, resolveTabBarConfig } from "../constants";
 import type { TabBarColors } from "../constants";
 import type { JellyTabBarProps, TabsItem } from "../types";
+import { useStableArray } from "../hooks/use-stable-array";
 import {
     getNavigationItems,
     getVisibleRoutes,
@@ -8,50 +9,14 @@ import {
     longPressNavigationTab,
     pressNavigationTab,
 } from "../utils/navigation";
+import {
+    areItemsEqual,
+    areRoutesEqual,
+    asColorString,
+} from "../utils/navigation-tab-bar";
 import { JellyTabBarHeadless } from "./tabs";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
-
-/**
- * React Navigation rebuilds `descriptors` on every navigator render, so any
- * `useMemo` anchored to it is a no-op. Keep the previous reference while the
- * contents are equivalent to provide actual stability.
- */
-function useStableArray<T>(
-    next: readonly T[],
-    isEqual: (a: T, b: T) => boolean,
-): readonly T[] {
-    const ref = useRef(next);
-    const previous = ref.current;
-
-    if (
-        previous !== next &&
-        (previous.length !== next.length ||
-            !next.every((value, index) =>
-                isEqual(value, previous[index] as T),
-            ))
-    ) {
-        ref.current = next;
-    }
-
-    return ref.current;
-}
-
-const asColorString = (value: unknown) =>
-    typeof value === "string" ? value : undefined;
-
-const areRoutesEqual = <T,>(a: T, b: T) => a === b;
-
-const areItemsEqual = (a: TabsItem, b: TabsItem) =>
-    a.key === b.key &&
-    a.label === b.label &&
-    a.labelStyle === b.labelStyle &&
-    a.activeIcon === b.activeIcon &&
-    a.inactiveIcon === b.inactiveIcon &&
-    a.badge === b.badge &&
-    a.badgeStyle === b.badgeStyle &&
-    a.accessibilityLabel === b.accessibilityLabel &&
-    a.testID === b.testID;
 
 export const JellyTabBar = ({
     backdrop,
