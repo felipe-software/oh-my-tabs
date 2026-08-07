@@ -48,6 +48,7 @@
         "prepublishOnly": "bun run build",
         "release": "semantic-release",
         "release:dry-run": "semantic-release --dry-run",
+        "test": "bun test tests",
         "era": "cd example && bunx expo run android",
         "epc": "cd example && bunx expo prebuild --clean"
     },
