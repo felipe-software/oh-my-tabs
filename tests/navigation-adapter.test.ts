@@ -50,7 +50,7 @@ const createNavigation = (defaultPrevented = false) => {
 };
 
 describe("Expo Router tab visibility", () => {
-    test("hides only routes configured with href: null", () => {
+    test("hides routes configured with href: null", () => {
         const visibleRoutes = getVisibleRoutes(routes, descriptors);
 
         expect(visibleRoutes.map((route) => route.key)).toEqual([

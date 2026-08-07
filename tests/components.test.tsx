@@ -478,6 +478,11 @@ describe("JellyTabBar navigation adapter", () => {
         { key: "home-key", name: "index", path: "/" },
         { key: "hidden-key", name: "internal", path: "/internal" },
         {
+            key: "style-hidden-key",
+            name: "style-hidden",
+            path: "/style-hidden",
+        },
+        {
             key: "profile-key",
             name: "profile",
             params: { user: "42" },
@@ -499,7 +504,18 @@ describe("JellyTabBar navigation adapter", () => {
     const descriptors: Readonly<
         Record<string, JellyNavigationDescriptor>
     > = {
-        "hidden-key": { options: { href: null, title: "Internal" } },
+        "hidden-key": {
+            options: {
+                href: null,
+                title: "Internal",
+            },
+        },
+        "style-hidden-key": {
+            options: {
+                tabBarItemStyle: [{ opacity: 0.5 }, { display: "none" }],
+                title: "Style hidden",
+            },
+        },
         "home-key": {
             options: {
                 tabBarAccessibilityLabel: "Open home",
@@ -528,7 +544,7 @@ describe("JellyTabBar navigation adapter", () => {
         };
     };
 
-    test("renders visible Expo Router tabs with the mapped selection and colors", async () => {
+    test("renders visible tabs while hiding href-null and display-none routes", async () => {
         const { navigation } = createNavigation();
         const renderer = await render(
             <JellyTabBar
@@ -536,7 +552,7 @@ describe("JellyTabBar navigation adapter", () => {
                 descriptors={descriptors}
                 insets={{ bottom: 8, left: 2, right: 4, top: 0 }}
                 navigation={navigation}
-                state={{ index: 2, key: "tabs-state", routes }}
+                state={{ index: 3, key: "tabs-state", routes }}
             />,
         );
 
@@ -573,6 +589,38 @@ describe("JellyTabBar navigation adapter", () => {
         });
     });
 
+    test("renders a route when its flattened item style overrides display to flex", async () => {
+        const { navigation } = createNavigation();
+        const visibleStyleDescriptors: Readonly<
+            Record<string, JellyNavigationDescriptor>
+        > = {
+            ...descriptors,
+            "style-hidden-key": {
+                options: {
+                    tabBarItemStyle: [
+                        { display: "none" },
+                        { display: "flex" },
+                    ],
+                    title: "Style visible",
+                },
+            },
+        };
+        const renderer = await render(
+            <JellyTabBar
+                descriptors={visibleStyleDescriptors}
+                insets={{ bottom: 0, left: 0, right: 0, top: 0 }}
+                navigation={navigation}
+                state={{ index: 3, key: "tabs-state", routes }}
+            />,
+        );
+
+        expect(
+            accessibilityTabs(renderer).map(
+                (tab) => tab.props.accessibilityLabel,
+            ),
+        ).toEqual(["Open home", "Style visible", "Profile"]);
+    });
+
     test("dispatches navigation and long-press events from rendered tabs", async () => {
         const { dispatch, emit, navigation } = createNavigation();
         const renderer = await render(
@@ -580,7 +628,7 @@ describe("JellyTabBar navigation adapter", () => {
                 descriptors={descriptors}
                 insets={{ bottom: 0, left: 0, right: 0, top: 0 }}
                 navigation={navigation}
-                state={{ index: 2, key: "tabs-state", routes }}
+                state={{ index: 3, key: "tabs-state", routes }}
             />,
         );
 
@@ -611,7 +659,7 @@ describe("JellyTabBar navigation adapter", () => {
         });
     });
 
-    test("shows no selected tab when Expo Router focuses a hidden route", async () => {
+    test("shows no selected tab when an href-null route is focused", async () => {
         const { navigation } = createNavigation();
         const renderer = await render(
             <JellyTabBar
@@ -619,6 +667,24 @@ describe("JellyTabBar navigation adapter", () => {
                 insets={{ bottom: 0, left: 0, right: 0, top: 0 }}
                 navigation={navigation}
                 state={{ index: 1, key: "tabs-state", routes }}
+            />,
+        );
+
+        expect(
+            accessibilityTabs(renderer).map(
+                (tab) => tab.props.accessibilityState.selected,
+            ),
+        ).toEqual([false, false]);
+    });
+
+    test("shows no selected tab when a display-none route is focused", async () => {
+        const { navigation } = createNavigation();
+        const renderer = await render(
+            <JellyTabBar
+                descriptors={descriptors}
+                insets={{ bottom: 0, left: 0, right: 0, top: 0 }}
+                navigation={navigation}
+                state={{ index: 2, key: "tabs-state", routes }}
             />,
         );
 
