@@ -11,8 +11,12 @@ import Animated, { type AnimatedStyle } from "react-native-reanimated";
 export interface PillMaskedViewProps extends PropsWithChildren {
     animatedStyle: StyleProp<AnimatedStyle<ViewStyle>>;
     clipStyle: StyleProp<AnimatedStyle<ViewStyle>>;
+    contentHeight: number;
+    contentStyle: StyleProp<AnimatedStyle<ViewStyle>>;
+    contentWidth: number;
     height: number;
     left: number;
+    tabWidth: number;
     top: number;
 }
 
@@ -21,7 +25,7 @@ const PillMaskElement = ({
     height,
     left,
     top,
-}: Omit<PillMaskedViewProps, "children" | "clipStyle">) => (
+}: Pick<PillMaskedViewProps, "animatedStyle" | "height" | "left" | "top">) => (
     <Animated.View
         style={[styles.mask, { height, left, top }, animatedStyle]}
     />
@@ -31,14 +35,44 @@ export const PillMaskedView = ({
     animatedStyle,
     children,
     clipStyle,
+    contentHeight,
+    contentStyle,
+    contentWidth,
     height,
     left,
+    tabWidth,
     top,
 }: PillMaskedViewProps) => {
     if (Platform.OS === "web") {
+        // The clip box is a statically sized rounded rect moved and scaled
+        // only by clipStyle's transform; contentStyle applies the inverse
+        // transform so the children stay fixed to the track. Safari drops the
+        // rounding of an animated clip-path on stray frames, so the rounded
+        // clip must come from border-radius, which is stable.
         return (
-            <Animated.View style={[StyleSheet.absoluteFill, clipStyle]}>
-                {children}
+            <Animated.View
+                style={[
+                    styles.webClipBox,
+                    WEB_CLIP_LAYER,
+                    {
+                        borderRadius: height / 2,
+                        height,
+                        left,
+                        top,
+                        width: tabWidth,
+                    },
+                    clipStyle,
+                ]}
+            >
+                <Animated.View
+                    style={[
+                        styles.webContent,
+                        { height: contentHeight, width: contentWidth },
+                        contentStyle,
+                    ]}
+                >
+                    {children}
+                </Animated.View>
             </Animated.View>
         );
     }
@@ -61,7 +95,22 @@ export const PillMaskedView = ({
     );
 };
 
+// Promote the clip box to its own compositing layer so Safari clips the
+// composited (transform/opacity-animated) touch-feedback glow to the box's
+// rounded corners instead of letting it escape into a square corner for a
+// frame.
+const WEB_CLIP_LAYER = { willChange: "transform" } as unknown as ViewStyle;
+
 const styles = StyleSheet.create({
+    webClipBox: {
+        position: "absolute",
+        overflow: "hidden",
+    },
+    webContent: {
+        position: "absolute",
+        left: 0,
+        top: 0,
+    },
     mask: {
         position: "absolute",
         backgroundColor: "#000000",
