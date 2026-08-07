@@ -90,6 +90,7 @@ export interface JellyNavigationOptions {
     }) => ReactNode;
     tabBarInactiveBackgroundColor?: unknown;
     tabBarInactiveTintColor?: unknown;
+    tabBarItemStyle?: StyleProp<ViewStyle>;
     tabBarLabel?: unknown;
     tabBarLabelStyle?: StyleProp<TextStyle>;
     tabBarShowLabel?: boolean;

@@ -6,6 +6,7 @@ import type {
     TabsIcon,
     TabsItem,
 } from "../types";
+import { StyleSheet } from "react-native";
 
 const EmptyIcon: TabsIcon = () => null;
 
@@ -50,15 +51,22 @@ const resolveIcon = (
 };
 
 /**
- * Expo Router marks routes that should not appear in a JavaScript tab bar with
- * `href: null`. Other href values (including undefined) still represent visible
- * routes.
+ * Expo Router consumes `href: null` and exposes it to custom JavaScript tab bars
+ * as `tabBarItemStyle: { display: "none" }`. Keep supporting `href: null`
+ * directly for navigation integrations that preserve it.
  */
 export const getVisibleRoutes = (
     routes: readonly JellyNavigationRoute[],
     descriptors: Readonly<Record<string, JellyNavigationDescriptor>>,
 ) =>
-    routes.filter((route) => descriptors[route.key]?.options.href !== null);
+    routes.filter((route) => {
+        const options = descriptors[route.key]?.options;
+
+        return (
+            options?.href !== null &&
+            StyleSheet.flatten(options?.tabBarItemStyle)?.display !== "none"
+        );
+    });
 
 export const getVisibleSelectedIndex = (
     visibleRoutes: readonly JellyNavigationRoute[],

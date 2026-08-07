@@ -50,13 +50,47 @@ const createNavigation = (defaultPrevented = false) => {
 };
 
 describe("Expo Router tab visibility", () => {
-    test("hides only routes configured with href: null", () => {
+    test("hides routes configured with href: null", () => {
         const visibleRoutes = getVisibleRoutes(routes, descriptors);
 
         expect(visibleRoutes.map((route) => route.key)).toEqual([
             "home-key",
             "profile-key",
         ]);
+    });
+
+    test("hides routes whose flattened tab item style has display: none", () => {
+        const styleHiddenRoute = { key: "style-hidden", name: "hidden" };
+
+        expect(
+            getVisibleRoutes([styleHiddenRoute], {
+                "style-hidden": {
+                    options: {
+                        tabBarItemStyle: [
+                            { opacity: 0.5 },
+                            { display: "none" },
+                        ],
+                    },
+                },
+            }),
+        ).toEqual([]);
+    });
+
+    test("keeps routes whose flattened tab item style is visible", () => {
+        const styledRoute = { key: "styled", name: "styled" };
+
+        expect(
+            getVisibleRoutes([styledRoute], {
+                styled: {
+                    options: {
+                        tabBarItemStyle: [
+                            { display: "none" },
+                            { display: "flex" },
+                        ],
+                    },
+                },
+            }),
+        ).toEqual([styledRoute]);
     });
 
     test("keeps routes whose descriptor or href is undefined", () => {

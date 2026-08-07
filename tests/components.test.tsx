@@ -475,7 +475,12 @@ describe("JellyTabBar navigation adapter", () => {
     const descriptors: Readonly<
         Record<string, JellyNavigationDescriptor>
     > = {
-        "hidden-key": { options: { href: null, title: "Internal" } },
+        "hidden-key": {
+            options: {
+                tabBarItemStyle: [{ opacity: 0.5 }, { display: "none" }],
+                title: "Internal",
+            },
+        },
         "home-key": {
             options: {
                 tabBarAccessibilityLabel: "Open home",
