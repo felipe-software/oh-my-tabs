@@ -10,6 +10,7 @@ import type {
     JellyNavigationDescriptor,
     JellyNavigationHelpers,
     JellyNavigationRoute,
+    TabsIconProps,
 } from "../src/types";
 
 const routes: readonly JellyNavigationRoute[] = [
@@ -134,7 +135,14 @@ describe("React Navigation item mapping", () => {
         );
 
         expect(item).toBeDefined();
-        item!.activeIcon({
+        const activeIcon = item!.activeIcon as (
+            props: TabsIconProps,
+        ) => React.ReactNode;
+        const inactiveIcon = item!.inactiveIcon as (
+            props: TabsIconProps,
+        ) => React.ReactNode;
+
+        activeIcon({
             color: "red",
             colors: {
                 activeContent: "red",
@@ -145,7 +153,7 @@ describe("React Navigation item mapping", () => {
             opacity: 1,
             size: 24,
         });
-        item!.inactiveIcon({
+        inactiveIcon({
             color: "gray",
             colors: {
                 activeContent: "red",
