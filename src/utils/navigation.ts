@@ -1,0 +1,152 @@
+import type {
+    JellyNavigationDescriptor,
+    JellyNavigationHelpers,
+    JellyNavigationOptions,
+    JellyNavigationRoute,
+    TabsIcon,
+    TabsItem,
+} from "../types";
+
+const EmptyIcon: TabsIcon = () => null;
+
+const resolveLabel = (routeName: string, options: JellyNavigationOptions) => {
+    if (options.tabBarShowLabel === false) {
+        return "";
+    }
+    if (typeof options.tabBarLabel === "string") {
+        return options.tabBarLabel;
+    }
+    return options.title ?? routeName;
+};
+
+type TabBarIconRenderer = NonNullable<JellyNavigationOptions["tabBarIcon"]>;
+
+const iconWrappers = new WeakMap<
+    TabBarIconRenderer,
+    { active: TabsIcon; inactive: TabsIcon }
+>();
+
+const resolveIcon = (
+    options: JellyNavigationOptions,
+    focused: boolean,
+): TabsIcon => {
+    const renderIcon = options.tabBarIcon;
+    if (!renderIcon) {
+        return EmptyIcon;
+    }
+
+    let wrappers = iconWrappers.get(renderIcon);
+    if (!wrappers) {
+        wrappers = {
+            active: ({ color, size }) =>
+                renderIcon({ color, focused: true, size }),
+            inactive: ({ color, size }) =>
+                renderIcon({ color, focused: false, size }),
+        };
+        iconWrappers.set(renderIcon, wrappers);
+    }
+
+    return focused ? wrappers.active : wrappers.inactive;
+};
+
+/**
+ * Expo Router marks routes that should not appear in a JavaScript tab bar with
+ * `href: null`. Other href values (including undefined) still represent visible
+ * routes.
+ */
+export const getVisibleRoutes = (
+    routes: readonly JellyNavigationRoute[],
+    descriptors: Readonly<Record<string, JellyNavigationDescriptor>>,
+) =>
+    routes.filter((route) => descriptors[route.key]?.options.href !== null);
+
+export const getVisibleSelectedIndex = (
+    visibleRoutes: readonly JellyNavigationRoute[],
+    focusedRouteKey: string | undefined,
+) => visibleRoutes.findIndex((route) => route.key === focusedRouteKey);
+
+export const getNavigationItems = (
+    visibleRoutes: readonly JellyNavigationRoute[],
+    descriptors: Readonly<Record<string, JellyNavigationDescriptor>>,
+): TabsItem[] =>
+    visibleRoutes.map((route) => {
+        const options = descriptors[route.key]?.options ?? {};
+        return {
+            accessibilityLabel: options.tabBarAccessibilityLabel,
+            activeIcon: resolveIcon(options, true),
+            badge: options.tabBarBadge,
+            badgeStyle: options.tabBarBadgeStyle,
+            inactiveIcon: resolveIcon(options, false),
+            key: route.key,
+            label: resolveLabel(route.name, options),
+            labelStyle: options.tabBarLabelStyle,
+            testID: options.tabBarButtonTestID,
+        };
+    });
+
+interface PressNavigationTabOptions {
+    focusedRouteKey: string | undefined;
+    index: number;
+    navigation: JellyNavigationHelpers;
+    stateKey: string;
+    visibleRoutes: readonly JellyNavigationRoute[];
+}
+
+export const pressNavigationTab = ({
+    focusedRouteKey,
+    index,
+    navigation,
+    stateKey,
+    visibleRoutes,
+}: PressNavigationTabOptions) => {
+    const route = visibleRoutes[index];
+    if (!route) {
+        return false;
+    }
+
+    const event = navigation.emit({
+        canPreventDefault: true,
+        target: route.key,
+        type: "tabPress",
+    }) as { defaultPrevented?: boolean };
+
+    if (event.defaultPrevented) {
+        return false;
+    }
+
+    if (route.key !== focusedRouteKey) {
+        navigation.dispatch({
+            payload: {
+                name: route.name,
+                params: route.params,
+                path: route.path,
+            },
+            target: stateKey,
+            type: "NAVIGATE",
+        });
+    }
+
+    return true;
+};
+
+interface LongPressNavigationTabOptions {
+    index: number;
+    navigation: JellyNavigationHelpers;
+    visibleRoutes: readonly JellyNavigationRoute[];
+}
+
+export const longPressNavigationTab = ({
+    index,
+    navigation,
+    visibleRoutes,
+}: LongPressNavigationTabOptions) => {
+    const route = visibleRoutes[index];
+    if (!route) {
+        return;
+    }
+
+    navigation.emit({
+        target: route.key,
+        type: "tabLongPress",
+    });
+};

@@ -1,97 +1,22 @@
 import { DEFAULT_TAB_BAR_COLORS, resolveTabBarConfig } from "../constants";
 import type { TabBarColors } from "../constants";
-import type {
-    JellyNavigationOptions,
-    JellyTabBarProps,
-    TabsIcon,
-    TabsItem,
-} from "../types";
+import type { JellyTabBarProps, TabsItem } from "../types";
+import { useStableArray } from "../hooks/use-stable-array";
+import {
+    getNavigationItems,
+    getVisibleRoutes,
+    getVisibleSelectedIndex,
+    longPressNavigationTab,
+    pressNavigationTab,
+} from "../utils/navigation";
+import {
+    areItemsEqual,
+    areRoutesEqual,
+    asColorString,
+} from "../utils/navigation-tab-bar";
 import { JellyTabBarHeadless } from "./tabs";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
-
-const EmptyIcon: TabsIcon = () => null;
-
-/**
- * React Navigation rebuilds `descriptors` on every navigator render, so any
- * `useMemo` anchored to it is a no-op. Keep the previous reference while the
- * contents are equivalent to provide actual stability.
- */
-function useStableArray<T>(
-    next: readonly T[],
-    isEqual: (a: T, b: T) => boolean,
-): readonly T[] {
-    const ref = useRef(next);
-    const previous = ref.current;
-
-    if (
-        previous !== next &&
-        (previous.length !== next.length ||
-            !next.every((value, index) =>
-                isEqual(value, previous[index] as T),
-            ))
-    ) {
-        ref.current = next;
-    }
-
-    return ref.current;
-}
-
-const resolveLabel = (routeName: string, options: JellyNavigationOptions) => {
-    if (options.tabBarShowLabel === false) {
-        return "";
-    }
-    if (typeof options.tabBarLabel === "string") {
-        return options.tabBarLabel;
-    }
-    return options.title ?? routeName;
-};
-
-type TabBarIconRenderer = NonNullable<JellyNavigationOptions["tabBarIcon"]>;
-
-const iconWrappers = new WeakMap<
-    TabBarIconRenderer,
-    { active: TabsIcon; inactive: TabsIcon }
->();
-
-const resolveIcon = (
-    options: JellyNavigationOptions,
-    focused: boolean,
-): TabsIcon => {
-    const renderIcon = options.tabBarIcon;
-    if (!renderIcon) {
-        return EmptyIcon;
-    }
-
-    let wrappers = iconWrappers.get(renderIcon);
-    if (!wrappers) {
-        wrappers = {
-            active: ({ color, size }) =>
-                renderIcon({ color, focused: true, size }),
-            inactive: ({ color, size }) =>
-                renderIcon({ color, focused: false, size }),
-        };
-        iconWrappers.set(renderIcon, wrappers);
-    }
-
-    return focused ? wrappers.active : wrappers.inactive;
-};
-
-const asColorString = (value: unknown) =>
-    typeof value === "string" ? value : undefined;
-
-const areRoutesEqual = <T,>(a: T, b: T) => a === b;
-
-const areItemsEqual = (a: TabsItem, b: TabsItem) =>
-    a.key === b.key &&
-    a.label === b.label &&
-    a.labelStyle === b.labelStyle &&
-    a.activeIcon === b.activeIcon &&
-    a.inactiveIcon === b.inactiveIcon &&
-    a.badge === b.badge &&
-    a.badgeStyle === b.badgeStyle &&
-    a.accessibilityLabel === b.accessibilityLabel &&
-    a.testID === b.testID;
 
 export const JellyTabBar = ({
     backdrop,
@@ -108,14 +33,13 @@ export const JellyTabBar = ({
     ...headlessProps
 }: JellyTabBarProps) => {
     const visibleRoutes = useStableArray(
-        state.routes.filter(
-            (route) => descriptors[route.key]?.options.href !== null,
-        ),
+        getVisibleRoutes(state.routes, descriptors),
         areRoutesEqual,
     );
     const focusedRoute = state.routes[state.index];
-    const selectedIndex = visibleRoutes.findIndex(
-        (route) => route.key === focusedRoute?.key,
+    const selectedIndex = getVisibleSelectedIndex(
+        visibleRoutes,
+        focusedRoute?.key,
     );
     const focusedOptions = focusedRoute
         ? descriptors[focusedRoute.key]?.options
@@ -124,20 +48,7 @@ export const JellyTabBar = ({
     const trackHeight = resolvedConfig.layout.trackHeight * displayScale;
 
     const items = useStableArray<TabsItem>(
-        visibleRoutes.map((route) => {
-            const options = descriptors[route.key]?.options ?? {};
-            return {
-                accessibilityLabel: options.tabBarAccessibilityLabel,
-                activeIcon: resolveIcon(options, true),
-                badge: options.tabBarBadge,
-                badgeStyle: options.tabBarBadgeStyle,
-                inactiveIcon: resolveIcon(options, false),
-                key: route.key,
-                label: resolveLabel(route.name, options),
-                labelStyle: options.tabBarLabelStyle,
-                testID: options.tabBarButtonTestID,
-            };
-        }),
+        getNavigationItems(visibleRoutes, descriptors),
         areItemsEqual,
     );
 
@@ -193,48 +104,23 @@ export const JellyTabBar = ({
 
     const handleTabPress = useCallback(
         ({ index }: { index: number }) => {
-            const route = visibleRoutes[index];
-            if (!route) {
-                return false;
-            }
-
-            const event = navigation.emit({
-                canPreventDefault: true,
-                target: route.key,
-                type: "tabPress",
-            }) as { defaultPrevented?: boolean };
-
-            if (event.defaultPrevented) {
-                return false;
-            }
-
-            if (route.key !== focusedRoute?.key) {
-                navigation.dispatch({
-                    payload: {
-                        name: route.name,
-                        params: route.params,
-                        path: route.path,
-                    },
-                    target: state.key,
-                    type: "NAVIGATE",
-                });
-            }
-
-            return true;
+            return pressNavigationTab({
+                focusedRouteKey: focusedRoute?.key,
+                index,
+                navigation,
+                stateKey: state.key,
+                visibleRoutes,
+            });
         },
         [focusedRoute?.key, navigation, state.key, visibleRoutes],
     );
 
     const handleTabLongPress = useCallback(
         ({ index }: { index: number }) => {
-            const route = visibleRoutes[index];
-            if (!route) {
-                return;
-            }
-
-            navigation.emit({
-                target: route.key,
-                type: "tabLongPress",
+            longPressNavigationTab({
+                index,
+                navigation,
+                visibleRoutes,
             });
         },
         [navigation, visibleRoutes],
