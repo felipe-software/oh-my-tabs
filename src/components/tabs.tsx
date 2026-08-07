@@ -5,6 +5,7 @@ import {
     resolveTabBarConfig,
 } from "../constants";
 import type { JellyTabBarHeadlessProps } from "../types";
+import { getTabWidth } from "../utils/animation";
 import { usePillJelly } from "../hooks/use-pill-jelly";
 import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
@@ -57,6 +58,9 @@ export const JellyTabBarHeadless = ({
     const trackRef = useRef<View>(null);
     const [uncontrolledSelectedIndex, setUncontrolledSelectedIndex] =
         useState(0);
+    // Web only: the pill clip box is statically sized from the measured track
+    // width so its animation stays transform-only. Unused on native.
+    const [webTrackWidth, setWebTrackWidth] = useState(0);
     const resolvedConfig = useMemo(() => resolveTabBarConfig(config), [config]);
     const resolvedColors = {
         ...DEFAULT_TAB_BAR_COLORS,
@@ -168,6 +172,7 @@ export const JellyTabBarHeadless = ({
         gesture,
         panelStyle,
         pillClipStyle,
+        pillContentStyle,
         pillMaskStyle,
         pressedStyle,
         selectedTouchFeedbackStyle,
@@ -206,6 +211,7 @@ export const JellyTabBarHeadless = ({
                     onLayout={(event) => {
                         setTrackWidth(event.nativeEvent.layout.width);
                         if (Platform.OS === "web") {
+                            setWebTrackWidth(event.nativeEvent.layout.width);
                             trackRef.current?.measureInWindow((x) =>
                                 setWebTrackPageX(x),
                             );
@@ -288,8 +294,20 @@ export const JellyTabBarHeadless = ({
                             <PillMaskedView
                                 animatedStyle={pillMaskStyle}
                                 clipStyle={pillClipStyle}
+                                contentHeight={
+                                    trackHeight + maskOverscanY * 2
+                                }
+                                contentStyle={pillContentStyle}
+                                contentWidth={
+                                    webTrackWidth + maskOverscanX * 2
+                                }
                                 height={itemHeight}
                                 left={maskOverscanX + trackInset}
+                                tabWidth={getTabWidth(
+                                    webTrackWidth,
+                                    trackInset,
+                                    tabCount,
+                                )}
                                 top={maskOverscanY + trackInset}
                             >
                                 <View style={styles.selectedSurface}>

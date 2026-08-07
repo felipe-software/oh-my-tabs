@@ -10,7 +10,7 @@ import {
     type PillJellyFrameState,
 } from "../utils/pill-jelly-animation";
 import { Gesture } from "react-native-gesture-handler";
-import { Platform, type ViewStyle } from "react-native";
+import { Platform } from "react-native";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
     clamp,
@@ -224,34 +224,69 @@ export const usePillJelly = (
 
     const pillMaskStyle = useAnimatedStyle(getPillMaskStyle);
 
-    const getPillClipStyle = () => {
-        "worklet";
+    // MaskedView has no web implementation. An animated CSS
+    // `clip-path: inset(... round ...)` is not an option either: Safari
+    // occasionally paints a frame with the inset applied but the rounding
+    // dropped, flashing the whole pill as a rectangle. Instead the pill is a
+    // statically sized border-radius + overflow:hidden box (a stable rounded
+    // clip) animated purely with transforms — the same translate/scale the
+    // native mask element uses — while pillContentStyle applies the exact
+    // inverse transform so the clipped content stays fixed to the track.
+    const pillClipStyle = useAnimatedStyle(() => {
+        const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
+        const velocity = filteredVelocity.value / 10;
+        const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
+        const scaleYCorrection = clamp(velocity * 0.25, -0.2, 0.2);
 
+        return {
+            transform: [
+                { translateX: value.value * tabWidth },
+                { scaleX: baseScaleX.value / (1 - scaleXCorrection) },
+                { scaleY: baseScaleY.value * (1 - scaleYCorrection) },
+            ],
+        };
+    });
+
+    const pillContentStyle = useAnimatedStyle(() => {
         const tabWidth = getTabWidth(trackWidth.value, trackInset, tabCount);
         const velocity = filteredVelocity.value / 10;
         const scaleXCorrection = clamp(velocity * 0.75, -0.2, 0.2);
         const scaleYCorrection = clamp(velocity * 0.25, -0.2, 0.2);
         const scaleX = baseScaleX.value / (1 - scaleXCorrection);
         const scaleY = baseScaleY.value * (1 - scaleYCorrection);
-        const pillWidth = tabWidth * scaleX;
-        const pillHeight = itemHeight * scaleY;
-        const left =
-            maskOverscanX +
-            trackInset +
-            value.value * tabWidth -
-            (pillWidth - tabWidth) / 2;
-        const top = maskOverscanY + trackInset - (pillHeight - itemHeight) / 2;
-        const right = trackWidth.value + maskOverscanX * 2 - left - pillWidth;
-        const bottom = trackHeight + maskOverscanY * 2 - top - pillHeight;
 
-        // MaskedView has no web implementation. A CSS inset clip preserves
-        // the same animated pill geometry while keeping its contents fixed.
+        // Both the clip box and this wrapper transform about their own
+        // centres, so inverting the box transform needs the centre offsets:
+        // solving box(wrapper(y)) = y for translate-then-scale transforms
+        // gives the translations below alongside the reciprocal scales.
+        const boxCenterX = tabWidth / 2;
+        const boxCenterY = itemHeight / 2;
+        const contentCenterX = (trackWidth.value + maskOverscanX * 2) / 2;
+        const contentCenterY = (trackHeight + maskOverscanY * 2) / 2;
+        const pillLeft = maskOverscanX + trackInset;
+        const pillTop = maskOverscanY + trackInset;
+        const pillShiftX = value.value * tabWidth;
+
         return {
-            clipPath: `inset(${top}px ${right}px ${bottom}px ${left}px round 999px)`,
-        } as unknown as ViewStyle;
-    };
-
-    const pillClipStyle = useAnimatedStyle(getPillClipStyle);
+            transform: [
+                {
+                    translateX:
+                        boxCenterX -
+                        contentCenterX +
+                        (contentCenterX - boxCenterX - pillLeft - pillShiftX) /
+                            scaleX,
+                },
+                {
+                    translateY:
+                        boxCenterY -
+                        contentCenterY +
+                        (contentCenterY - boxCenterY - pillTop) / scaleY,
+                },
+                { scaleX: 1 / scaleX },
+                { scaleY: 1 / scaleY },
+            ],
+        };
+    });
 
     const activeItemStyle = useAnimatedStyle(() => {
         const scale = 1 + 0.2 * pressProgress.value;
@@ -495,6 +530,7 @@ export const usePillJelly = (
         gesture,
         panelStyle,
         pillClipStyle,
+        pillContentStyle,
         pillMaskStyle,
         pressedStyle,
         selectedTouchFeedbackStyle,
