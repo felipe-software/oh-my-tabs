@@ -59,15 +59,37 @@ const MockAnimatedView = forwardRef<
     Record<string, unknown>
 >((props, ref) => {
     useImperativeHandle(ref, () => ({
-        measureInWindow(callback) {
-            callback(24);
-        },
+        measureInWindow,
     }), []);
 
     return createElement("Animated.View", props);
 });
 
+export const measureInWindow = mock((callback: (x: number) => void) => {
+    callback(24);
+});
+
+type DimensionsChangeListener = () => void;
+const dimensionsChangeListeners = new Set<DimensionsChangeListener>();
+
+export const dimensions = {
+    addEventListener(_type: "change", listener: DimensionsChangeListener) {
+        dimensionsChangeListeners.add(listener);
+        return {
+            remove() {
+                dimensionsChangeListeners.delete(listener);
+            },
+        };
+    },
+    emitChange() {
+        for (const listener of dimensionsChangeListeners) {
+            listener();
+        }
+    },
+};
+
 mockModule("react-native", () => ({
+    Dimensions: dimensions,
     Platform: platform,
     StyleSheet: {
         absoluteFill,

@@ -9,8 +9,15 @@ import { getTabWidth } from "../utils/animation";
 import { usePillJelly } from "../hooks/use-pill-jelly";
 import { PillMaskedView } from "./pill-masked-view";
 import { TouchFeedback } from "./touch-feedback";
-import { cloneElement, useCallback, useMemo, useRef, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import {
+    cloneElement,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
+import { Dimensions, Platform, StyleSheet, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
@@ -191,6 +198,24 @@ export const JellyTabBarHeadless = ({
         onTabPress ? handleTabPress : undefined,
         onTabLongPress ? handleTabLongPress : undefined,
     );
+    const measureWebTrackPageX = useCallback(() => {
+        trackRef.current?.measureInWindow((x) => setWebTrackPageX(x));
+    }, [setWebTrackPageX]);
+
+    useEffect(() => {
+        if (Platform.OS !== "web") {
+            return;
+        }
+
+        // A centered track can move when the viewport is resized without
+        // changing its own width, so onLayout alone will not run again.
+        const subscription = Dimensions.addEventListener(
+            "change",
+            measureWebTrackPageX,
+        );
+
+        return () => subscription.remove();
+    }, [measureWebTrackPageX]);
 
     return (
         <GestureDetector gesture={gesture}>
@@ -212,9 +237,7 @@ export const JellyTabBarHeadless = ({
                         setTrackWidth(event.nativeEvent.layout.width);
                         if (Platform.OS === "web") {
                             setWebTrackWidth(event.nativeEvent.layout.width);
-                            trackRef.current?.measureInWindow((x) =>
-                                setWebTrackPageX(x),
-                            );
+                            measureWebTrackPageX();
                         }
                     }}
                 >
