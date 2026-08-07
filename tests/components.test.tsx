@@ -1,4 +1,5 @@
 import {
+    act,
     cleanup,
     fireEvent,
     render,
@@ -21,7 +22,12 @@ import type {
     TabsIcon,
     TabsItem,
 } from "../src/types";
-import { absoluteFill, platform } from "./setup";
+import {
+    absoluteFill,
+    dimensions,
+    measureInWindow,
+    platform,
+} from "./setup";
 
 let JellyTabBar: typeof import(
     "../src/components/navigation-tab-bar"
@@ -436,6 +442,24 @@ describe("JellyTabBarHeadless", () => {
             findAllByType(renderer, host.animatedView)
                 .map((node) => flattenStyle(node.props.style).width),
         ).toContain(416);
+    });
+
+    test("remeasures the web track position after a viewport resize", async () => {
+        platform.OS = "web";
+        const renderer = await render(<JellyTabBarHeadless items={items} />);
+
+        await fireEvent(
+            renderer.getByTestId("tabs-drag-surface"),
+            "layout",
+            { nativeEvent: { layout: { width: 320 } } },
+        );
+        const measurementsBeforeResize = measureInWindow.mock.calls.length;
+
+        await act(() => dimensions.emitChange());
+
+        expect(measureInWindow).toHaveBeenCalledTimes(
+            measurementsBeforeResize + 1,
+        );
     });
 
     test("can omit both touch feedback layers", async () => {

@@ -518,11 +518,14 @@ export const usePillJelly = (
         setDistortionTrackWidth(width);
     };
 
-    const setWebTrackPageX = (pageX: number) => {
-        if (IS_WEB && Number.isFinite(pageX)) {
-            webTrackPageX.value = pageX;
-        }
-    };
+    const setWebTrackPageX = useCallback(
+        (pageX: number) => {
+            if (IS_WEB && Number.isFinite(pageX)) {
+                webTrackPageX.value = pageX;
+            }
+        },
+        [webTrackPageX],
+    );
 
     return {
         activateTab,
