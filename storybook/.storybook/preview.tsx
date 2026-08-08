@@ -1,3 +1,5 @@
+import "./preview.css";
+
 /** Global Storybook configuration shared by every story. */
 const preview = {
     parameters: {

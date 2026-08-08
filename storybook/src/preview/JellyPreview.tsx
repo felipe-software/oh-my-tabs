@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -82,27 +82,31 @@ const PreviewBlur = ({
     );
 };
 
-// A random photo behind glass — same recipe as the example app — so the blur
-// backdrops have something rich to sample. A soft scrim keeps the pill legible.
-const randomBackground = () =>
-    `https://picsum.photos/2292/1034?random=${Math.floor(Math.random() * 1_000_000)}`;
+// Keep the preview self-contained so the background also works in the static
+// Storybook build embedded by Docusaurus.
+const previewBackground = new URL(
+    "../../../example/assets/images/color-lab-background.png",
+    import.meta.url,
+).href;
 
 const Stage = ({ children }: { children: ReactNode }) => {
-    const [bg] = useState(randomBackground);
     if (Platform.OS === "web") {
         return (
             <div
                 style={{
                     position: "relative",
                     display: "flex",
+                    flex: 1,
                     alignItems: "center",
                     justifyContent: "center",
-                    minHeight: 300,
+                    width: "100%",
+                    minHeight: "100%",
                     padding: 28,
+                    boxSizing: "border-box",
                     borderRadius: 24,
                     overflow: "hidden",
                     backgroundColor: "#11100f",
-                    backgroundImage: `linear-gradient(rgba(10,9,8,0.25), rgba(10,9,8,0.45)), url(${bg})`,
+                    backgroundImage: `linear-gradient(rgba(10,9,8,0.25), rgba(10,9,8,0.45)), url(${previewBackground})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                 }}
