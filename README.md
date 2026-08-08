@@ -122,6 +122,22 @@ Each item takes an `activeIcon` and an `inactiveIcon` render function.
 
 Colors, opacity, layout, jelly springs, distortion, backdrops and touch feedback are all configurable. See **[CUSTOMIZATION.md](./CUSTOMIZATION.md)** for every prop and config value.
 
+## Documentation
+
+Full docs with live, interactive previews live in [`docs/`](./docs) (Docusaurus). Every
+example is a real Storybook story rendered through React Native Web, so what you read is
+what runs. The stories themselves live in [`storybook/`](./storybook).
+
+```sh
+bun run docs:previews   # build Storybook into docs/static/storybook
+bun run docs            # start the docs site (previews must be built first)
+bun run storybook       # open Storybook on its own (port 7007)
+bun run docs:build      # full static build (previews + docs) → docs/build
+```
+
+`docs/build` is a plain static bundle, ready to deploy to Cloudflare Workers
+(see [`docs/wrangler.jsonc`](./docs/wrangler.jsonc)).
+
 ## Development
 
 The reusable package lives in `src/`. The Expo playground, generated background, and color laboratory live in `example/`.

@@ -1,0 +1,65 @@
+---
+sidebar_position: 1
+title: Expo Router
+---
+
+# Expo Router
+
+`JellyTabBar` is a drop-in `tabBar` for Expo Router's JavaScript tabs.
+
+```tsx title="app/_layout.tsx"
+import { Tabs } from "expo-router";
+import { JellyTabBar } from "react-native-jelly-tabs";
+
+export default function TabLayout() {
+    return <Tabs tabBar={(props) => <JellyTabBar {...props} floating />} />;
+}
+```
+
+<StorybookPreview id="getting-started-playground--default" height={360} />
+
+## Floating
+
+Pass `floating` to position the bar **over** the screen instead of reserving
+layout space — the screen fills the space behind it.
+
+```tsx
+<Tabs tabBar={(props) => <JellyTabBar {...props} floating />} />
+```
+
+Scrollable screens should add bottom content padding so the last item stays
+reachable above the floating bar.
+
+## Hidden tabs
+
+Expo Router's `href: null` convention hides a route from the bar — including a
+hidden **focused** route, with no false selection:
+
+```tsx
+<Tabs.Screen name="modal" options={{ href: null }} />
+```
+
+## Per-screen options
+
+Jelly Tabs reads the standard tab options:
+
+```tsx
+<Tabs.Screen
+    name="inbox"
+    options={{
+        title: "Inbox",
+        tabBarBadge: 3,
+        tabBarIcon: ({ color, size }) => <InboxIcon color={color} size={size} />,
+    }}
+/>
+```
+
+Supported: `title`, string `tabBarLabel`, `tabBarLabelStyle`, `tabBarIcon`,
+`tabBarShowLabel`, `tabBarBadge`, `tabBarBadgeStyle`, `tabBarAccessibilityLabel`,
+`tabBarButtonTestID`, active/inactive tint & background colors, `tabBarBackground`,
+`tabBarStyle`, plus `tabPress` and `tabLongPress` events.
+
+:::note
+Function-valued `tabBarLabel` and custom tab buttons are not rendered by the Jelly
+layout.
+:::
